@@ -1,0 +1,31 @@
+gongpeng:
+  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions"
+  delay: 3
+  max_retries: 3
+  timeout: 10
+  params:
+    pagesize: 999999
+    pageno: 0
+    finishstarttime: 0
+    finishendtime: 0
+    key: ""
+auction_sections:
+  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/{gongpeng_id}/sections"
+  delay: 2
+  max_retries: 3
+  timeout: 10
+  params:
+    pagesize: 999999
+    pageno: 0
+
+
+auction_pigeons:
+  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/{gongpeng_id}/pigeons"
+  delay: 2
+  max_retries: 3
+  timeout: 10
+  params:
+    pagesize: 999999
+    pageno: 0
+    orderby: 'live'
+    sectionid: 0

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
-from pprint import pprint
+from pprint import pprint, pformat
 from typing import Any, Optional, Dict, List
 from requests import Response
 from commons.base_crawler import BaseCrawler
@@ -149,7 +149,9 @@ class PidsPigeonsCrawler(BaseCrawler):
             if res is not None:
                 pigs_data = self.parse(res)
                 if pigs_data is not None:
-                    return self.parse_pigeons(pigs_data)
+                    pids = self.parse_pigeons(pigs_data)
+                    pprint(pids)
+                    return pids
         self.logger.log_info(f"pid={pigeon_id}无出价记录")
         return None
 
@@ -157,5 +159,4 @@ class PidsPigeonsCrawler(BaseCrawler):
 
 if __name__ == "__main__":
     bis = PidsPigeonsCrawler()
-    pigList=bis.run_crawl()
-    pprint(pigList)
+    pigList=bis.run_crawl(187099)

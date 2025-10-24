@@ -22,14 +22,6 @@ class PigeonCrawler(BaseCrawler):
 
     MAX_WORKERS = 20  # 可按目标站点负载能力调整
 
-    # ---------------- 必要的抽象方法实现 ----------------
-    def parse(self, response: Response) -> Any:
-        """
-        说明：
-        - 本子类主流程直接调用 fetch_pigeons()/fetchall_pigeons()，不走 crawl()
-        - 为避免误用，这里直接抛出提示
-        """
-        raise NotImplementedError("PigeonCrawler 不走 crawl() 流程，请调用 fetch_pigeons / fetchall_pigeons")
 
     # ---------------- 构造与初始化 ----------------
     def __init__(
@@ -77,6 +69,16 @@ class PigeonCrawler(BaseCrawler):
             f"PigeonCrawler ready | url={self.base_url} | delay≤{delay}s | "
             f"timeout={self.timeout} | retries={self.max_retries} | params={self.param_template}"
         )
+
+
+    # ---------------- 必要的抽象方法实现 ----------------
+    def parse(self, response: Response) -> Any:
+        """
+        说明：
+        - 本子类主流程直接调用 fetch_pigeons()/fetchall_pigeons()，不走 crawl()
+        - 为避免误用，这里直接抛出提示
+        """
+        raise NotImplementedError("PigeonCrawler 不走 crawl() 流程，请调用 fetch_pigeons / fetchall_pigeons")
 
     # ---------------- 单个请求 ----------------
     def fetch_pigeons(self, gongpeng_id: int, section_id: int) -> List[PigeonInfo]:

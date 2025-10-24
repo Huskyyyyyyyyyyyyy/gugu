@@ -229,7 +229,14 @@ if __name__ == "__main__":
     pc = PigeonCrawler()
     pigeons = pc.fetchall_pigeons(section_id_and_gongpeng_id)
 
-    pprint(pigeons)
+    # pprint(pigeons)
+
+    from dao.pigeon_dao import PigeonDao
+
+    mysqlconfig = load_config('mysqlconfig', 'config\\db_config.yaml')
+    pgDao = PigeonDao(**mysqlconfig)
+    pgDao.ensure_table_pigeon_info()
+    pgDao.insert_or_update_pigeon_info_batch(pigeons)
 
     # pg = PigeonCrawler()
     # pigeons = pg.fetch_pigeons(309,2061)

@@ -29,3 +29,24 @@ auction_pigeons:
     pageno: 0
     orderby: 'live'
     sectionid: 0
+
+
+
+current_pigeons:
+  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/308/pigeons/current"
+  delay: 2
+  max_retries: 3
+  timeout: 10
+
+
+pid_pigeons:
+  api_url: "https://service.jingjia.guguxinge.com/api//client/transaction/api/v1/pigeons/{pid}/bids"
+  delay: 2
+  max_retries: 3
+  timeout: 10
+  params:
+    pagesize: 999999
+    pageno: 0
+
+#直播间url
+TARGET_URL: "https://cdn.guguxinge.com/jingjia/#/live?auctionid=308"

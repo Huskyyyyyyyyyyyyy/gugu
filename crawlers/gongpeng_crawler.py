@@ -48,7 +48,7 @@ class GongpengCrawler(BaseCrawler):
         # 确保 pagesize 存在且合理（>0）。若未配置则默认 50。
         ps = int(self.param_template.get("pagesize", 0) or 0)
         if ps <= 0:
-            self.param_template["pagesize"] = 50
+            self.param_template["pagesize"] = 500
 
         super().__init__(
             headers=headers,

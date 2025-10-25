@@ -1,3 +1,4 @@
+#拍卖公棚url
 gongpeng:
   api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions"
   delay: 3
@@ -9,6 +10,7 @@ gongpeng:
     finishstarttime: 0
     finishendtime: 0
     key: ""
+#拍卖鸽分组url
 auction_sections:
   api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/{gongpeng_id}/sections"
   delay: 2
@@ -18,7 +20,7 @@ auction_sections:
     pagesize: 999999
     pageno: 0
 
-
+#拍卖鸽列表url
 auction_pigeons:
   api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/{gongpeng_id}/pigeons"
   delay: 2
@@ -31,14 +33,14 @@ auction_pigeons:
     sectionid: 0
 
 
-
+#当前拍卖鸽
 current_pigeons:
-  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/308/pigeons/current"
+  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/311/pigeons/current"
   delay: 2
   max_retries: 3
   timeout: 10
 
-
+#拍卖鸽历史出价记录
 pid_pigeons:
   api_url: "https://service.jingjia.guguxinge.com/api//client/transaction/api/v1/pigeons/{pid}/bids"
   delay: 2
@@ -49,4 +51,4 @@ pid_pigeons:
     pageno: 0
 
 #直播间url
-TARGET_URL: "https://cdn.guguxinge.com/jingjia/#/live?auctionid=308"
+TARGET_URL: "https://cdn.guguxinge.com/jingjia/#/live?auctionid=311&h=%5B%22home%22%2C%22auctiondetl%22%5D"

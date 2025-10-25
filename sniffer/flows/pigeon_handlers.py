@@ -1,114 +1,122 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# 模块用途：承载“业务逻辑”，即：去抖、调用池执行、冷启动流程。
+# 模块用途：承载 “flow 扳机” 入口，即统一触发业务流程。
 # 说明：
-#   - 不参与路由与实例化（这些放在 pigeon_flow.py）；
-#   - 只做纯逻辑，可单独做单元测试；
-#   - 不复用结果，只复用实例（开销更小，逻辑与现状一致）。
+#   - 实际业务逻辑（抓取、查询、排序等）已迁移至 services/pigeon_service.py；
+#   - 本类保留统一入口 process_current_pid；
+#   - 同时保留历史注释与接口（例如 _query_deal_counts、handle_pigeon_bid 等）；
+#   - 方便后续 WebSocket / flow 调用使用该入口触发数据推送。
 # ──────────────────────────────────────────────────────────────────────────────
-from __future__ import annotations
-import asyncio
-import re
-import time
-from pprint import pformat
-from typing import Dict, List
 
+from __future__ import annotations
+from typing import List, Any, Coroutine
 from commons.base_logger import BaseLogger
-from sniffer.models import Event
+from mydataclass.record import BidRecord
 from .crawler_pool import CrawlerPool
 from .pigeon_config import PigeonConfig
+from ..pigeon_pids_query.pigeon_bis_query import PigeonService
+
 
 class PigeonHandlers:
-    """Pigeon 业务处理：去抖、冷启动、执行爬虫调用。"""
+    """Pigeon Flow 扳机类：保留触发入口与历史注释。"""
 
     def __init__(self, *, pool: CrawlerPool, cfg: PigeonConfig, logger: BaseLogger):
-        self.pool = pool
-        self.cfg = cfg
-        self.log = logger
-        # 去抖状态：记录每个 pid 最近一次处理的 monotonic 时间戳
-        self._last_run_at: Dict[int, float] = {}
+        # 将核心逻辑交由 PigeonService 执行
+        self.service = PigeonService(pool=pool, cfg=cfg, logger=logger)
 
-    @staticmethod
-    def _extract_pid(m: re.Match) -> int:
-        """从路由正则中提取 pid（字符串 → int）。"""
-        return int(m.group("pigeon"))
+        # 去抖状态（仍可保留，供 handle_pigeon_bid 使用）
+        self._last_run_at: dict[int, float] = {}
 
-    async def handle_pigeon_bid(self, ev: Event, m: re.Match):
+    # ─────────────────────────────────────────────
+    # flow 扳机主入口：供启动/实时触发/WebSocket调用使用
+    # ─────────────────────────────────────────────
+    async def process_current_pid(self, reason: str = "realtime", debounce: bool = True) -> tuple[Any, Any]:
         """
-        实时报价消息处理：
-          - 去抖（monotonic，抗系统时钟跳变）
-          - 通过爬虫池在“线程亲和 + 串行”的槽位上执行 run_crawl
-          - 不复用结果（按需可扩展）
+        通用处理流程（启动 / 实时触发统一使用）：
+          1. 调用 current 爬虫获取当前 PID；
+          2. 若获取成功，则直接用爬虫池抓取；
+          3. 默认顺序执行（无并发）；
+          4. 可选去抖（默认启用，仅实时触发时有效）；
+          5. 返回 List[BidRecord]（后续 Socket 可直接推送）。
         """
-        pid = self._extract_pid(m)
+        # 若后续添加去抖逻辑，可在此层实现，不影响业务类
+        current_info,records = await self.service.run_once(reason=reason)
+        return current_info,records
 
-        # —— 去抖：同一 pid 在冷却窗口内忽略
-        now, last = time.monotonic(), self._last_run_at.get(pid, 0.0)
-        if (now - last) < self.cfg.cooldown_sec:
-            if self.cfg.debug_verbose:
-                self.log.log_debug(f"[Debounce] pid={pid} Δ={round(now - last, 3)}s < {self.cfg.cooldown_sec}s")
-            return
-        self._last_run_at[pid] = now
+    # ─────────────────────────────────────────────
+    # 以下保留历史注释与接口（供未来扩展/兼容）
+    # ─────────────────────────────────────────────
 
-        # —— 执行：槽位线程上同步调用 run_crawl（外层可叠加信号量限流）
-        idx, bids = await self.pool.run_pid(pid)
-        if self.cfg.debug_verbose:
-            size = (len(bids) if hasattr(bids, "__len__") and bids is not None else 0)
-            # pformat(bids)
-            self.log.log_debug(f"[Bids] pid={pid} size={size} via slot#{idx}")
+    # async def _query_deal_counts(self, bids: list[dict]) -> dict:
+    #     """
+    #     接收上游爬虫返回的 bids 列表（list[dict]），
+    #     从中提取在线出价人的 user_code，批量查询他们的历史成交。
+    #     """
+    #     if not bids:
+    #         self.log.log_info("[DB] 无 bids，跳过查询")
+    #         return {}
+    #     user_codes = list({
+    #         bid.get("usercode") or bid.get("bid_user_code")
+    #         for bid in bids
+    #         if (bid.get("type") == "online") and (bid.get("usercode") or bid.get("bid_user_code"))
+    #     })
+    #     if not user_codes:
+    #         self.log.log_info("[DB] 无有效在线 user_code，跳过查询")
+    #         return {}
+    #     self.log.log_info(f"[DB] 开始查询历史成交: count={len(user_codes)}, 示例={user_codes[:5]}")
+    #     def _run_query_sync():
+    #         return self.dao.query_user_deal_records(
+    #             user_codes=user_codes,
+    #             status_whitelist=("已完成", "已结拍"),
+    #             chunk_size=100,
+    #         )
+    #     try:
+    #         results = await asyncio.to_thread(_run_query_sync)
+    #     except Exception as e:
+    #         self.log.log_error(f"[DB] 查询失败: {e}")
+    #         return {}
+    #     # ✅ 打印结构化结果
+    #     if not results:
+    #         self.log.log_info("[DB] 查询结果为空")
+    #     else:
+    #         for uc, rows in results.items():
+    #             self.log.log_info(f"[DB] === 出价人: {uc} ===")
+    #             grouped = {}
+    #             for r in rows:
+    #                 grouped.setdefault(r["matcher_name"], []).append(r)
+    #             for matcher_name, recs in grouped.items():
+    #                 self.log.log_info(f"鸽主: {matcher_name} | 成交次数: {len(recs)}")
+    #                 for rec in recs:
+    #                     self.log.log_info(
+    #                         f"  └─ 鸽子: {rec['name']} 环号: {rec['foot_ring']} 价格: {rec['quote']}"
+    #                     )
+    #     return results
 
-    async def cold_start_once(self):
-        """
-        冷启动流程：
-          1) 从 env 解析显式 pid 列表；
-          2) 若无且允许回退，则通过 current 接口拉取“当前 pid”；
-          3) 对最终列表并发抓取（并发上限 = cfg.max_concurrency）。
-        """
-        # 1) 解析 pid 列表
-        pids = self._parse_bootstrap_pids(self.cfg.bootstrap_pids_raw)
+    async def handle_pigeon_auction(self, ev, m):
+        """预留：拍卖事件触发处理（尚未实现）"""
+        pass
 
-        # 2) 回退：current 接口
-        if not pids and self.cfg.use_current_bootstrap:
-            try:
-                pid = await self.pool.get_current_pid()
-                if pid:
-                    pids = [pid]
-                    self.log.log_info(f"[Bootstrap] 当前 PID 获取成功：pid={pid}")
-                else:
-                    self.log.log_warning("[Bootstrap] 未获取到当前 PID（可能接口返回空）")
-            except Exception as e:
-                self.log.log_error(f"[Bootstrap] 获取当前 PID 失败：{e}")
+    # @staticmethod
+    # def _extract_pid(m: re.Match) -> int:
+    #     """从路由正则中提取 pid（字符串 → int）。"""
+    #     return int(m.group("pigeon"))
 
-        # 3) 无 pid → 直接跳过
-        if not pids:
-            self.log.log_info("[Bootstrap] 跳过冷启动：无可用 PID 列表")
-            return
-
-        # 4) 并发抓取（使用一个局部信号量控制并发即可）
-        self.log.log_info(f"[Bootstrap] 启动预抓任务：pids={pids}, 并发={self.cfg.max_concurrency}")
-        sem = asyncio.Semaphore(self.cfg.max_concurrency)
-
-        async def _one(pid: int):
-            async with sem:
-                try:
-                    idx, _ = await self.pool.run_pid(pid)
-                    self.log.log_info(f"[Bootstrap] PID={pid} 抓取成功 via slot#{idx}")
-                except Exception as e:
-                    self.log.log_error(f"[Bootstrap] PID={pid} 抓取失败：{e}")
-
-        await asyncio.gather(*(_one(pid) for pid in pids))
-
-    @staticmethod
-    def _parse_bootstrap_pids(env_val: str) -> List[int]:
-        """env 字符串 → int 列表；非法项静默跳过（可按需改为日志告警）。"""
-        if not env_val:
-            return []
-        out: List[int] = []
-        for tok in env_val.split(","):
-            tok = tok.strip()
-            if not tok:
-                continue
-            try:
-                out.append(int(tok))
-            except ValueError:
-                pass
-        return out
+    # async def handle_pigeon_bid(self, ev: Event, m: re.Match):
+    #     """
+    #     实时报价消息处理：
+    #       - 去抖（monotonic，抗系统时钟跳变）
+    #       - 通过爬虫池在“线程亲和 + 串行”的槽位上执行 run_crawl
+    #       - 不复用结果（按需可扩展）
+    #     """
+    #     pid = self._extract_pid(m)
+    #     now, last = time.monotonic(), self._last_run_at.get(pid, 0.0)
+    #     if (now - last) < self.cfg.cooldown_sec:
+    #         if self.cfg.debug_verbose:
+    #             self.log.log_debug(
+    #                 f"[Debounce] pid={pid} Δ={round(now - last, 3)}s < {self.cfg.cooldown_sec}s"
+    #             )
+    #         return
+    #     self._last_run_at[pid] = now
+    #     idx, bids = await self.pool.run_pid(pid)
+    #     if self.cfg.debug_verbose:
+    #         size = (len(bids) if hasattr(bids, "__len__") and bids is not None else 0)
+    #         self.log.log_debug(f"[Bids] pid={pid} size={size} via slot#{idx}")

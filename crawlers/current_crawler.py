@@ -114,7 +114,37 @@ class CurrentPigeonsCrawler(BaseCrawler):
             self.logger.log_warning(f"顶层 id 不是整数：{pid}")
             return None
 
+    def get_current_pigeon_info(self) -> tuple[dict[Any, Any], Any | None] | None:
+        """
+        从当前鸽子的原始数据中直接取出顶层字段 “id”、"footring"、"matchername"。
+        若取值异常或字段不存在，则对应值为 None。
+        """
+        data = self.get_current_pigeon_raw()
+        if not data:
+            return None
 
+        result = {}
+
+        # 获取 id
+        pid = data.get("id")
+        try:
+            result["id"] = int(pid)
+        except Exception:
+            self.logger.log_warning(f"顶层 id 不是整数：{pid}")
+            result["id"] = None
+
+        # 获取 footring
+        result["footring"] = data.get("footring")
+        if result["footring"] is None:
+            self.logger.log_warning("未找到 footring 字段")
+
+        # 获取 matchername
+        result["matchername"] = data.get("matchername")
+        if result["matchername"] is None:
+            self.logger.log_warning("未找到 matchername 字段")
+
+
+        return result,pid
 
     def crawl_run(self, url: str | None = None) -> Optional[Any]:
         """

@@ -25,5 +25,5 @@ class PigeonConfig:
             cooldown_sec=float(os.getenv("PIGEON_FLOW_COOLDOWN_SEC", "2.0")),
             bootstrap_pids_raw=os.getenv("PIGEON_BOOTSTRAP_PIDS", ""),
             use_current_bootstrap=os.getenv("PIGEON_BOOTSTRAP_USE_CURRENT", "true").lower() == "true",
-            debug_verbose=os.getenv("PIGEON_FLOW_DEBUG", "false").lower() == "true",
+            debug_verbose=os.getenv("PIGEON_FLOW_DEBUG", "true").lower() == "true",
         )

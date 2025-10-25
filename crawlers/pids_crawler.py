@@ -1,19 +1,15 @@
 # crawlers/jcurrent_pigeons.py
 from __future__ import annotations
-
 import json
 from copy import deepcopy
-from pprint import pprint, pformat
 from typing import Any, Optional, Dict, List
 from requests import Response
 from commons.base_crawler import BaseCrawler
 from commons.base_logger import BaseLogger
 from mydataclass import record
-from mydataclass.pigeon import PigeonInfo
 from mydataclass.record import BidRecord
 from tools.config_loader import load_config
 from tools.request_utils import _clean_url
-from crawlers.current_crawler import CurrentPigeonsCrawler
 
 
 class PidsPigeonsCrawler(BaseCrawler):
@@ -149,9 +145,12 @@ class PidsPigeonsCrawler(BaseCrawler):
             if res is not None:
                 pigs_data = self.parse(res)
                 if pigs_data is not None:
-                    pids = self.parse_pigeons(pigs_data)
-                    pprint(pids)
-                    return pids
+                    # print(type(pigs_data))
+                    # pprint(pigs_data)
+                    # 弃用去下游封装
+                    # pids = self.parse_pigeons(pigs_data)
+                    # pprint(pids)
+                    return pigs_data
         self.logger.log_info(f"pid={pigeon_id}无出价记录")
         return None
 

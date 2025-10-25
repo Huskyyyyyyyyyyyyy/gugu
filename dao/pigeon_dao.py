@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import asdict, is_dataclass
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple, Sequence
 from datetime import datetime
 
 from commons.base_db import BaseDB
@@ -325,3 +325,60 @@ class PigeonDao(BaseDB):
                 val = self.format_datetime(val)
             result[col] = val if col not in ("remark", "ws_remark") else (val or None)
         return result
+
+    def query_user_deal_records(
+            self,
+            user_codes: Sequence[str],
+            *,
+            status_whitelist: Tuple[str, ...] = ("已完成", "已结拍"),
+            chunk_size: int = 100,
+            ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        基于 bid_user_code 批量查询历史成交记录（结构化字段，不拼接）。
+        返回字段:
+            bid_user_code, matcher_name, name(鸽子名), foot_ring(环号), quote(成交价)
+
+        返回示例：
+            {
+              "GUGU007SZV679": [
+                 {"matcher_name": "李四", "name": "白羽神速", "foot_ring": "SG2510200F1XK888", "quote": 2000},
+                 {"matcher_name": "李四", "name": "黑风王", "foot_ring": "SG2510200F1XK666", "quote": 1800},
+              ],
+              "GUGU007P7L653": [
+                 {"matcher_name": "一叶寒秋", "name": "极速灰", "foot_ring": "SG2510200F1XR9988", "quote": 1500},
+              ]
+            }
+        """
+        if not user_codes:
+            return {}
+
+        results: Dict[str, List[Dict[str, Any]]] = {}
+
+        with self.connection_ctx() as conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                for i in range(0, len(user_codes), chunk_size):
+                    chunk = user_codes[i:i + chunk_size]
+                    placeholders = ", ".join(["%s"] * len(chunk))
+                    status_placeholders = ", ".join(["%s"] * len(status_whitelist))
+
+                    sql = f"""
+                        SELECT
+                            bid_user_code,
+                            matcher_name,
+                            name,
+                            foot_ring,
+                            quote
+                        FROM pigeon_info
+                        WHERE bid_user_code IN ({placeholders})
+                          AND status_name IN ({status_placeholders})
+                        ORDER BY bid_user_code, matcher_name
+                    """
+
+                    cursor.execute(sql, (*chunk, *status_whitelist))
+                    for row in cursor.fetchall():
+                        uc = row["bid_user_code"]
+                        results.setdefault(uc, []).append(row)
+            finally:
+                cursor.close()
+        return results

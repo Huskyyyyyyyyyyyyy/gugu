@@ -17,12 +17,22 @@ import asyncio
 import contextlib
 import json
 import signal
+from pigeon_socket.sse_runner import (
+    start_sse_background,
+    stop_sse_background,
+)
 
 # —— 基础模块导入 ——
 from browser import run_browser         # 浏览器管理：启动 + 注入 JS Hook
 from trigger import Trigger             # 核心触发器：处理 WS 消息队列
 from models import Event                # 统一事件模型
 from setting import QUEUE_CAP, TRIGGER_TEXT, MIN_BIN_LEN  # 配置参数
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse, JSONResponse
+from pigeon_socket.adapters.bidrecord_payload import records_to_payload, error_payload
+from sniffer.flows.pigeon_flow import get_handlers
+import uvicorn
 
 # —— flows 包自动加载所有业务流程并注册到路由中 ——
 # flows/__init__.py 会调用 autoload_flows() 自动导入所有 flow 文件，
@@ -84,8 +94,18 @@ async def main():
 
     # 启动触发器的消费者协程（用于异步处理队列中的 WS 消息）
     await trigger.start(n_workers=4)
-    # ⭐ 冷启动：这里统一执行所有 flows 注册的 on_startup 钩子（包括 current→pid→bids）
+    #  冷启动：这里统一执行所有 flows 注册的 on_startup 钩子（包括 current→pid→bids）
     await run_startup_hooks()
+
+    #  启动 SSE（后台协程，不阻塞主流程）
+    sse_handle = await start_sse_background(host="0.0.0.0", port=8001)
+
+    try:
+        # —— 你的浏览器抓取主循环（原样）
+        await run_browser(trigger, stop_evt)
+    finally:
+        # ✅ 优雅关闭 SSE
+        await stop_sse_background(sse_handle)
     try:
         # —— 启动浏览器并进入主循环
         # run_browser 内部：

@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import pooling, Error
 from commons.base_logger import BaseLogger
 from contextlib import contextmanager
-
+from tools.config_loader import load_config
 from tools.retry_on_exception import retry_on_exception
 
 
@@ -14,6 +14,7 @@ class BaseDB:
     _instance = None  # 单例实例变量
     _lock = False     # 用于线程安全控制（若将来使用线程安全机制时使用）
 
+
     def __new__(cls, *args, **kwargs):
         # 实现单例模式：仅创建一个实例
         if cls._instance is None:
@@ -21,18 +22,29 @@ class BaseDB:
         return cls._instance
 
     def __init__(self, **kwargs):
+        config_path: str = r"config\db_config.yaml"
+        config_section: str = "mysqlconfig"
         # 初始化只执行一次（单例下防止重复执行）
         if not hasattr(self, 'initialized'):
             # 初始化日志记录器
             self.logger = BaseLogger(name='DB', to_file=True)
 
             # 设置数据库连接参数
-            self.host = kwargs['host']
-            self.port = kwargs['port']
-            self.user = kwargs['user']
-            self.password = kwargs['password']
-            self.database = kwargs['database']
-            self.pool_size = kwargs['pool_size']
+        # if kwargs is not None:
+        #     self.host = kwargs.pop("host")
+        #     self.port = kwargs.pop("port")
+        #     self.user = kwargs.pop("user")
+        #     self.password = kwargs.pop("password")
+        #     self.database = kwargs.pop("database")
+        #     self.pool_size = kwargs.pop("pool_size")
+
+            cfg = load_config(config_section, config_path)
+            self.host = cfg.get('host')
+            self.port = cfg.get('port')
+            self.user = cfg.get('user')
+            self.password = cfg.get('password')
+            self.database = cfg.get('database')
+            self.pool_size = cfg.get('pool_size')
 
             # 初始化连接状态
             self.connection_pool = None         # 连接池对象

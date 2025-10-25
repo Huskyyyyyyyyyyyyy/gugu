@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <title>鸽拍实时数据（分组展示）</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; background:#f7f8fa; margin: 20px; color:#333;}
+    h1 { text-align:center; color:#0078d7; margin-bottom:8px;}
+    #status { text-align:center; font-size:14px; margin-bottom:16px;}
+    #list { max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
+    .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px 18px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
+    .title { font-size:16px; font-weight:700; margin-bottom:6px;}
+    .line { margin:6px 0; }
+    .group { background:#f9f9f9; border-left:3px solid #0078d7; padding:8px 12px; border-radius:6px; margin-top:8px;}
+    .item { margin-left:14px; white-space:pre-wrap; line-height:1.6; }
+    .muted { color:#777; }
+    .strong { font-weight:700; color:#111; }
+    .nick { color:#0f61a8; font-weight:700; }
+    .err { text-align:center; color:#c0392b; margin-top:8px; }
+    .center-muted { text-align:center; color:#999; }
+  </style>
+</head>
+<body>
+  <h1>🐦 鸽拍实时数据</h1>
+  <div id="status">连接状态：<span id="statusText">未连接</span></div>
+  <div id="list"></div>
+  <div id="error" class="err"></div>
+
+<script>
+(() => {
+  // === 配置：修改为你的 SSE 地址 ===
+  const SSE_URL = "http://localhost:8001/sse/pigeon"; // 如用 8000 就改成 8000
+
+  const statusText = document.getElementById("statusText");
+  const list = document.getElementById("list");
+  const errorBox = document.getElementById("error");
+
+  function setStatus(ok) {
+    statusText.textContent = ok ? "已连接" : "断开，正在重连...";
+    statusText.style.color = ok ? "green" : "red";
+  }
+  function showError(msg) { errorBox.textContent = msg || ""; }
+
+  function toPercent(score) {
+    const n = Number(score);
+    if (isNaN(n)) return "";
+    return `${Math.round(n * 100)}%`;
+  }
+  function safe(s){ return (s===0?0:(s||"-")); }
+
+  // 将 history 按 matcher_name 分组
+  function groupByMatcher(rows) {
+    const map = new Map();
+    (rows || []).forEach(r => {
+      const key = (r?.matcher_name || "-").trim();
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(r);
+    });
+    return map;
+  }
+
+  function render(payload) {
+    list.innerHTML = "";
+    if (!payload?.items?.length) {
+      list.innerHTML = `<div class="center-muted">暂无数据</div>`;
+      return;
+    }
+    payload.items.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      // 头部：出价人
+      const title = document.createElement("div");
+      title.className = "title";
+      title.innerHTML = `出价人：<span class="nick">${safe(item.userNickname)}</span>`;
+      card.appendChild(title);
+
+      // 基本信息（可按需保留）
+      const base = document.createElement("div");
+      base.className = "line muted";
+      base.textContent = `出价人编号：${safe(item.userCode)}    出价次数：${safe(item.count)}`;
+      card.appendChild(base);
+
+      // 历史记录分组
+      const rows = Array.isArray(item.history) ? item.history : [];
+      const groups = groupByMatcher(rows);
+
+      if (groups.size === 0) {
+        const none = document.createElement("div");
+        none.className = "center-muted";
+        none.textContent = "历史拍得记录：暂无";
+        card.appendChild(none);
+      } else {
+        groups.forEach((arr, matcherName) => {
+          // 组头：历史拍得记录: 李四 | 成交次数: X
+          // 成交次数优先使用行上的 _agg_count，否则用组内条目数
+          const aggCount = Number(arr[0]?._agg_count ?? arr.length) || arr.length;
+          const head = document.createElement("div");
+          head.className = "group";
+          head.innerHTML = `历史拍得记录：<span class="strong">${matcherName}</span> | 成交次数：<span class="strong">${aggCount}</span>`;
+          card.appendChild(head);
+
+          // 组内逐条： └─ 鸽子：{name}（相似度：YY%） 环号：{foot_ring} 价格：{quote}
+          arr.forEach(r => {
+            const line = document.createElement("div");
+            line.className = "item";
+            const name = safe(r?.name);
+            const ring = safe(r?.foot_ring);
+            const price = safe(r?.quote);
+            const sim = toPercent(r?._match_score);
+            const simPart = sim ? `（相似度：${sim}）` : "";
+            line.textContent = `└─ 鸽子：${name}${simPart}  环号：${ring}  价格：${price}`;
+            card.appendChild(line);
+          });
+        });
+      }
+
+      list.appendChild(card);
+    });
+  }
+
+  function connect() {
+    const es = new EventSource(SSE_URL);
+
+    es.onopen = () => { setStatus(true); showError(""); };
+    es.onerror = () => { setStatus(false); };
+
+    es.addEventListener("bids", (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        render(data);
+        showError("");
+      } catch (err) {
+        showError("数据解析错误：" + (err?.message || err));
+      }
+    });
+
+    es.addEventListener("error", (ev) => {
+      try {
+        if (typeof ev.data === "string" && ev.data.trim()) {
+          try {
+            const data = JSON.parse(ev.data);
+            showError("服务端错误：" + (data?.error?.message || ev.data));
+          } catch {
+            showError(ev.data); // 非 JSON 的错误文本，原样显示
+          }
+        } else {
+          showError("服务端错误或连接中断，浏览器会自动重连…");
+        }
+      } catch {
+        showError("服务端错误（无可读数据）");
+      }
+    });
+  }
+
+  connect();
+})();
+</script>
+</body>
+</html>

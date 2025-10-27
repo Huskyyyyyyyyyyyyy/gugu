@@ -1,15 +1,19 @@
 # crawlers/jcurrent_pigeons.py
 from __future__ import annotations
+
 import json
 from copy import deepcopy
+from pprint import pprint, pformat
 from typing import Any, Optional, Dict, List
 from requests import Response
 from commons.base_crawler import BaseCrawler
 from commons.base_logger import BaseLogger
 from mydataclass import record
+from mydataclass.pigeon import PigeonInfo
 from mydataclass.record import BidRecord
 from tools.config_loader import load_config
 from tools.request_utils import _clean_url
+from crawlers.current_crawler import CurrentPigeonsCrawler
 
 
 class PidsPigeonsCrawler(BaseCrawler):

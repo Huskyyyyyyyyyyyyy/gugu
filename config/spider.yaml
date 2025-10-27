@@ -52,3 +52,6 @@ pid_pigeons:
 
 #直播间url
 TARGET_URL: "https://cdn.guguxinge.com/jingjia/#/live?auctionid=317&h=%5B%22home%22%2C%22auctiondetl%22%5D"
+
+context:
+  xlsx_path: "D:\\pareedo\\gugu\\gugu2\\context\\拍卖手册.xlsx"

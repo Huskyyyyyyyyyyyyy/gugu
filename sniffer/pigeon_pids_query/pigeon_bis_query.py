@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import difflib
 from pprint import pprint
-from typing import Dict, List, Tuple, Any, Iterable, Set, Coroutine
+from typing import Dict, List, Tuple, Any, Iterable, Set, Coroutine, Optional
 
 from commons.base_logger import BaseLogger
 from mydataclass.record import BidRecord
@@ -101,14 +101,14 @@ class PigeonService:
 
         # 组装历史，保证返回 List[BidRecord]
         try:
-            bids = await self.build_bid_records_with_history(bids)
+            bids = await self.build_bid_records_with_history(bids,current_info["matchername"])
         except Exception as e:
             self.log.log_warning(f"[{reason}] build_bid_records_with_history() error: {e}")
             bids = []
 
         return current_info, bids
 
-    async def build_bid_records_with_history(self, raw_bids: List[Dict[str, Any]]) -> List[BidRecord]:
+    async def build_bid_records_with_history(self, raw_bids: List[Dict[str, Any]],compare_name:str) -> List[BidRecord]:
         """
         装配流程（异步）：
           1) 封装：上游 bids(list[dict]) → List[BidRecord]（内部已按 user_code 统计 count）
@@ -140,7 +140,7 @@ class PigeonService:
 
         # 5) 排序与可视化字段（阈值可从配置读取）
         fuzzy_threshold = getattr(self.cfg, "fuzzy_threshold", 0.8) or 0.8
-        self._apply_custom_sort_rules_with_fuzzy(records, fuzzy_threshold=float(fuzzy_threshold))
+        self._apply_custom_sort_rules_with_fuzzy(records, fuzzy_threshold=float(fuzzy_threshold),compare_name=compare_name)
 
         # 可选调试输出：简要核对装配情况
         if self.cfg.debug_verbose:
@@ -282,6 +282,7 @@ class PigeonService:
         records: Iterable['BidRecord'],
         *,
         fuzzy_threshold: float = 0.8,
+        compare_name: str | None = None,   # 新增参数：用它与 matcher_name 比,
     ) -> None:
         """
         对每条记录的 results[user_code] 应用自定义排序（含模糊匹配）并附加可视化字段。
@@ -306,13 +307,9 @@ class PigeonService:
             if not rows:
                 continue
 
-            # 取当前这条出价记录的 usernickname
-            raw_nick = (
-                getattr(record, "user_nickname", None)
-                or getattr(record, "usernickname", None)
-                or ""
-            )
+            raw_nick = compare_name or ""
             norm_nick = self._normalize_name(raw_nick)
+
 
             # 统计每个 matcher_name 的聚合
             agg: Dict[str, Dict[str, float]] = {}

@@ -1,90 +1,163 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"/>
-  <title>鸽拍实时数据（分组展示）</title>
-  <style>
-    body { font-family: "Microsoft YaHei", sans-serif; background:#f7f8fa; margin: 20px; color:#333;}
-    h1 { text-align:center; color:#0078d7; margin-bottom:8px;}
-    #status { text-align:center; font-size:14px; margin-bottom:16px;}
-    #list { max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
-    .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px 18px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
-    .title { font-size:16px; font-weight:700; margin-bottom:6px;}
-    .line { margin:6px 0; }
-    .group { background:#f9f9f9; border-left:3px solid #0078d7; padding:8px 12px; border-radius:6px; margin-top:8px;}
-    .item { margin-left:14px; white-space:pre-wrap; line-height:1.6; }
-    .muted { color:#777; }
-    .strong { font-weight:700; color:#111; }
-    .nick { color:#0f61a8; font-weight:700; }
-    .err { text-align:center; color:#c0392b; margin-top:8px; }
-    .center-muted { text-align:center; color:#999; }
-  </style>
+<meta charset="UTF-8" />
+<title>鸽拍实时数据</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: "Microsoft YaHei", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f7f8fa; margin:20px; color:#333; }
+  /* h1、状态栏可按需恢复 */
+  /* h1 { text-align:center; color:#0078d7; margin-bottom:8px; font-weight:800; } */
+  /* #status { text-align:center; margin-bottom:14px; font-size:14px; } */
+  #list { max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
+  .card { background:#fff; border:1px solid #e6e6e6; border-radius:12px; padding:16px 20px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+  .title { font-size:16px; font-weight:800; margin-bottom:6px; }
+  .line { margin:5px 0; color:#555; }
+  .group { background:#f9f9f9; border-left:3px solid #0078d7; padding:8px 12px; border-radius:6px; margin-top:10px; font-weight:600; }
+  .item { margin-left:15px; white-space:pre-wrap; line-height:1.7; }
+  .center-muted { text-align:center; color:#999; }
+  .err { text-align:center; color:#c0392b; margin-top:8px; }
+  .nick { color:#0f61a8; font-weight:800; }
+
+  /* 右上角固定信息框（显示 current_id） */
+  .fixed-meta {
+    position: fixed; top: 16px; right: 16px; z-index: 9999;
+    background: #ffffffeb; backdrop-filter: blur(4px);
+    border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px;
+    font-size: 13px; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    min-width: 260px; text-align: left;
+  }
+  .fixed-meta .label { color:#666; display:inline-block; width:70px; }
+  .fixed-meta .value { color:#111; font-weight:800; }
+
+  /* 相同字符高亮 & 对比说明 */
+  .hl { color:#d0021b; font-weight:800; }
+  .subtle { color:#777; font-size:12px; margin-top:4px; }
+</style>
 </head>
 <body>
-  <h1>🐦 鸽拍实时数据</h1>
-  <div id="status">连接状态：<span id="statusText">未连接</span></div>
+  <div class="fixed-meta" id="fixedMeta">
+    <div><span class="label">鸽子ID：</span><span class="value" id="m_id">-</span></div>
+    <div><span class="label">环号：</span><span class="value" id="m_ring">-</span></div>
+    <div><span class="label">鸽主：</span><span class="value" id="m_matcher">-</span></div>
+  </div>
+
+  <!-- 如需显示标题/连接状态，取消注释即可 -->
+  <!-- <h1>🐦 鸽拍实时数据</h1>
+  <div id="status">连接状态：<span id="statusText">未连接</span></div> -->
+
   <div id="list"></div>
   <div id="error" class="err"></div>
 
 <script>
 (() => {
-  // === 配置：修改为你的 SSE 地址 ===
-  const SSE_URL = "http://localhost:8001/sse/pigeon"; // 如用 8000 就改成 8000
+  // === 修改为你的 SSE 地址（snake_case 后端） ===
+  const SSE_URL = "http://localhost:8001/sse/pigeon";
 
-  const statusText = document.getElementById("statusText");
+  // DOM
+  const statusText = document.getElementById("statusText"); // 可能不存在
   const list = document.getElementById("list");
   const errorBox = document.getElementById("error");
+  const mId = document.getElementById("m_id");
+  const mRing = document.getElementById("m_ring");
+  const mMatcher = document.getElementById("m_matcher");
 
-  function setStatus(ok) {
+  // ====== 工具函数 ======
+  const setStatus = ok => {
+    if (!statusText) return; // 隐藏状态栏时无操作
     statusText.textContent = ok ? "已连接" : "断开，正在重连...";
-    statusText.style.color = ok ? "green" : "red";
-  }
-  function showError(msg) { errorBox.textContent = msg || ""; }
-
-  function toPercent(score) {
-    const n = Number(score);
-    if (isNaN(n)) return "";
-    return `${Math.round(n * 100)}%`;
-  }
-  function safe(s){ return (s===0?0:(s||"-")); }
-
-  // 将 history 按 matcher_name 分组
-  function groupByMatcher(rows) {
-    const map = new Map();
-    (rows || []).forEach(r => {
-      const key = (r?.matcher_name || "-").trim();
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(r);
-    });
-    return map;
+    statusText.style.color = ok ? "green":"red";
+  };
+  const showError = msg => errorBox.textContent = msg || "";
+  const safe = v => (v===0 ? 0 : (v ?? "-"));
+  const groupBy = (arr, keyFn) => {
+    const m=new Map(); (arr||[]).forEach(r=>{ const k=keyFn(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r); }); return m;
+  };
+  const displayQuote = v => (v==null ? "-" : (typeof v === "object" ? (()=>{ try{return JSON.stringify(v);}catch{return "-";} })() : String(v)));
+  function fmtMoney(v) {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n.toLocaleString("zh-CN");
+    return displayQuote(v);
   }
 
+  // 相似度 & 高亮（按“字符”）
+  const toChars = s => Array.from((s ?? "").toString());
+  function charJaccardPercent(a, b) {
+    const A = new Set(toChars(a)), B = new Set(toChars(b));
+    if (!A.size && !B.size) return 0;
+    let inter = 0; A.forEach(ch => { if (B.has(ch)) inter++; });
+    const union = new Set([...A, ...B]).size || 1;
+    return Math.round((inter / union) * 100);
+  }
+  function commonCharsAtLeastTwo(a, b, c) {
+    const cnt = new Map();
+    [a, b, c].forEach(s => { const seen = new Set(toChars(s)); seen.forEach(ch => cnt.set(ch, (cnt.get(ch)||0)+1)); });
+    const commons = new Set(); cnt.forEach((n, ch) => { if (n >= 2) commons.add(ch); });
+    return commons;
+  }
+  function highlightCommonChars(str, commons) {
+    return toChars(str).map(ch => commons.has(ch) ? `<span class="hl">${ch}</span>` : ch).join("");
+  }
+
+  // 仅 snake_case：后端已统一
+  function pickItems(payload) { return Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : []; }
+  function pickCurrent(payload) { return payload?.current_id ?? null; }
+
+  // 右上角 meta
+  function renderCurrentMeta(current) {
+    mId.textContent = safe(current?.id);
+    mRing.textContent = safe(current?.footring ?? current?.foot_ring ?? current?.ring);
+    mMatcher.textContent = safe(current?.matchername ?? current?.matcher_name ?? current?.matcher);
+  }
+
+  // ====== 主渲染 ======
   function render(payload) {
+    const current = pickCurrent(payload);
+    const currentMatcherName = (current?.matchername ?? current?.matcher_name ?? "").toString();
+    renderCurrentMeta(current);
+
     list.innerHTML = "";
-    if (!payload?.items?.length) {
+    const items = pickItems(payload);
+    if (!items.length) {
       list.innerHTML = `<div class="center-muted">暂无数据</div>`;
       return;
     }
-    payload.items.forEach(item => {
+
+    items.forEach(item => {
+      const userNickname = item.user_nickname ?? "";
+      const userCode = item.user_code ?? "";
+      const count = item.count;
+      const results = item.results || {};
+      // 从 results 中取内层历史：优先 user_code，兜底取第一个非空数组
+      let historyRows = Array.isArray(results[userCode]) ? results[userCode] : null;
+      if (!historyRows || !historyRows.length) {
+        for (const v of Object.values(results)) { if (Array.isArray(v) && v.length) { historyRows = v; break; } }
+      }
+      historyRows = historyRows || [];
+
       const card = document.createElement("div");
       card.className = "card";
 
-      // 头部：出价人
+      // 出价人
       const title = document.createElement("div");
       title.className = "title";
-      title.innerHTML = `出价人：<span class="nick">${safe(item.userNickname)}</span>`;
+      title.innerHTML = `出价人：<span class="nick">${safe(userNickname)}</span>`;
       card.appendChild(title);
 
-      // 基本信息（可按需保留）
+      // 当前出价
+      const base2 = document.createElement("div");
+      base2.className = "line";
+      base2.textContent = `当前出价：¥${fmtMoney(item.quote)} `;
+      card.appendChild(base2);
+
+      // 基本信息
       const base = document.createElement("div");
-      base.className = "line muted";
-      base.textContent = `出价人编号：${safe(item.userCode)}    出价次数：${safe(item.count)}`;
+      base.className = "line";
+      base.textContent = `出价编号：${safe(userCode)}    出价次数：${safe(count)}`;
       card.appendChild(base);
 
-      // 历史记录分组
-      const rows = Array.isArray(item.history) ? item.history : [];
-      const groups = groupByMatcher(rows);
-
+      // 分组：按 matcher_name
+      const groups = groupBy(historyRows, r => (r?.matcher_name ?? "-").toString().trim());
       if (groups.size === 0) {
         const none = document.createElement("div");
         none.className = "center-muted";
@@ -92,24 +165,30 @@
         card.appendChild(none);
       } else {
         groups.forEach((arr, matcherName) => {
-          // 组头：历史拍得记录: 李四 | 成交次数: X
-          // 成交次数优先使用行上的 _agg_count，否则用组内条目数
+          const group = document.createElement("div");
+          group.className = "group";
           const aggCount = Number(arr[0]?._agg_count ?? arr.length) || arr.length;
-          const head = document.createElement("div");
-          head.className = "group";
-          head.innerHTML = `历史拍得记录：<span class="strong">${matcherName}</span> | 成交次数：<span class="strong">${aggCount}</span>`;
-          card.appendChild(head);
 
-          // 组内逐条： └─ 鸽子：{name}（相似度：YY%） 环号：{foot_ring} 价格：{quote}
+          // 相似度：matcher_name vs 当前拍品鸽主
+          const sim = charJaccardPercent(matcherName, currentMatcherName);
+          // 共同字符：出价人昵称、历史鸽主、当前鸽主 三者中至少两者包含
+          const commons = commonCharsAtLeastTwo(matcherName, currentMatcherName, userNickname);
+          const hlMatcher = highlightCommonChars(matcherName, commons);
+          const hlCurrent = highlightCommonChars(currentMatcherName, commons);
+          const hlBidder = highlightCommonChars(userNickname, commons);
+
+          group.innerHTML = `历史拍得记录：${hlMatcher}（相似度：${sim}%） | 成交次数：${aggCount}`
+                            + `<div class="subtle">对比：当前鸽主：${hlCurrent}　|　出价人昵称：${hlBidder}</div>`;
+          card.appendChild(group);
+
+          // 逐条记录
           arr.forEach(r => {
             const line = document.createElement("div");
             line.className = "item";
             const name = safe(r?.name);
-            const ring = safe(r?.foot_ring);
-            const price = safe(r?.quote);
-            const sim = toPercent(r?._match_score);
-            const simPart = sim ? `（相似度：${sim}）` : "";
-            line.textContent = `└─ 鸽子：${name}${simPart}  环号：${ring}  价格：${price}`;
+            const ring = safe(r?.foot_ring ?? r?.footring);
+            const price = displayQuote(r?.quote);
+            line.textContent = `└─ 鸽子：${name} 环号：${ring}  价格：${price}`;
             card.appendChild(line);
           });
         });
@@ -119,12 +198,13 @@
     });
   }
 
+  // ====== 连接 SSE ======
   function connect() {
     const es = new EventSource(SSE_URL);
-
     es.onopen = () => { setStatus(true); showError(""); };
     es.onerror = () => { setStatus(false); };
 
+    // 具名事件：bids
     es.addEventListener("bids", (ev) => {
       try {
         const data = JSON.parse(ev.data);
@@ -135,17 +215,26 @@
       }
     });
 
+    // 兜底：默认消息
+    es.onmessage = (ev) => {
+      if (!ev?.data) return;
+      try {
+        const data = JSON.parse(ev.data);
+        render(data);
+        showError("");
+      } catch { /* 非 JSON 忽略 */ }
+    };
+
+    // 服务器错误事件（可选）
     es.addEventListener("error", (ev) => {
       try {
         if (typeof ev.data === "string" && ev.data.trim()) {
           try {
-            const data = JSON.parse(ev.data);
-            showError("服务端错误：" + (data?.error?.message || ev.data));
-          } catch {
-            showError(ev.data); // 非 JSON 的错误文本，原样显示
-          }
+            const d = JSON.parse(ev.data);
+            showError("服务端错误：" + (d?.error?.message || ev.data));
+          } catch { showError(ev.data); }
         } else {
-          showError("服务端错误或连接中断，浏览器会自动重连…");
+          showError("服务端错误或断开，浏览器会自动重连…");
         }
       } catch {
         showError("服务端错误（无可读数据）");

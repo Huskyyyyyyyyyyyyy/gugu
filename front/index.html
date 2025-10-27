@@ -5,6 +5,7 @@
 <title>不怎么好用的拍卖查询</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
+  /* ========= 主题与基础色板 ========= */
   :root{
     --brand:#0078d7;
     --bg:#f7f8fa;
@@ -13,63 +14,140 @@
     --border:#e6e6e6;
     --card:#fff;
     --hl-red:#d0021b;
-    --hl-green:#1d9e51;
+    --hl-green: #9e1d1d;
   }
-  body { font-family: "Microsoft YaHei", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); margin:20px; color:var(--text); }
 
-  .layout{ max-width: 1160px; margin: 0 auto; display:flex; gap:16px; align-items:flex-start; }
-  .left{ flex: 1 1 68%; display:flex; flex-direction:column; gap:14px; }
-  .right{ flex: 0 0 360px; }
-  @media (max-width: 980px){ .layout{ flex-direction:column; } .right{ flex: 1 1 auto; } }
+  /* ========= 页面与布局 ========= */
+  body {
+    font-family: "Microsoft YaHei", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:var(--bg);
+    margin:20px;
+    color:var(--text);
+  }
 
+  .layout{
+    max-width: 1460px;
+    margin: 0 auto;
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+  }
+
+  .left{
+    flex: 1 1 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 960px;       /* 固定内容区最大宽度 */
+    margin: 0 auto;         /* 居中对齐 */
+  }
+  /* 右上角出价时间（更醒目） */
+  .time-right{
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 900;   /* 加深显示 */
+      color: #000;        /* 深色文字 */
+      background: rgba(0,0,0,.04); /* 微底色，增强对比度 */
+      line-height: 1.4;
+      white-space: nowrap;
+  }
+  /* 相对时间（显示在徽标第二行） */
+  .time-right .sub{
+      display: block;
+      font-size: 12px;
+      opacity: .65;
+      font-weight: 700;
+      margin-top: 2px;
+  }
+
+
+  .time-right .label{
+      opacity: .7;
+      font-weight: 700;
+      margin-right: 4px;
+  }
+
+  @media (max-width: 980px){
+    .layout{ flex-direction:column; }
+  }
+
+  /* ========= 卡片样式 ========= */
   .card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.05);
-  position: relative;
-  margin-top: 20px;   /* ← 新增：每个卡片上方留空 */
-}
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    position: relative;
+    margin-top: 20px;   /* 每个卡片上方留空 */
+    box-sizing: border-box;
+  }
+
   .title { font-size:16px; font-weight:800; margin-bottom:6px; }
   .line { margin:5px 0; color:#555; }
+
   .line-strong {
-  display: flex;
-  justify-content: space-between; /* 左右两端对齐 */
-  align-items: center;
-  font-weight: 800;
-  color: #000;
-  width: 100%;
+    display: flex;
+    justify-content: space-between; /* 左右两端对齐 */
+    align-items: center;
+    font-weight: 800;
+    color: #000;
+    width: 100%;
   }
   .line-strong .right {
     margin-left: auto;   /* 确保右边靠最右 */
     text-align: right;
   }
-  /*历史信息组*/
+
+  /* ========= 顶部信息小框 ========= */
+  .meta-wrap { position: sticky; top: 0; z-index: 10; }
+  .meta-box{
+    background:#ffffffeb;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:14px 16px;
+    font-size:17px;
+    line-height:1.6;
+    box-shadow:0 6px 16px rgba(0,0,0,.10);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .meta-box .label { color:#666; display:inline-block; width:72px; vertical-align: top; }
+  .meta-box .value { color:#111; font-weight:800; }
+  .meta-box .value-block { color:#111; font-weight:600; white-space: pre-wrap; word-break: break-word; display: inline; }
+
+  /* ========= 历史信息组 ========= */
   .group {
-  font-family: "Microsoft YaHei", sans-serif;   /* ✅ 改成雅黑字体 */
-  background: rgba(249, 249, 249, 0.8);         /* ✅ 半透明浅灰底色 */
-  border-left: 3px solid var(--brand);
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin-top: 18px;
-  font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);       /* ✅ 轻微阴影增强层次 */
-}
+    font-family: "Microsoft YaHei", sans-serif;
+    background: rgba(249, 249, 249, 0.8);
+    border-left: 3px solid var(--brand);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 18px;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
   .item { margin-left:15px; white-space:pre-wrap; line-height:1.7; }
   .center-muted { text-align:center; color:#999; }
   .err { text-align:center; color:#c0392b; margin-top:8px; }
   .nick { color:#0f61a8; font-weight:800; }
 
-  .meta-box{ background:#ffffffeb; border:1px solid #ddd; border-radius:12px; padding:14px 16px; font-size:14px; line-height:1.6; box-shadow:0 6px 16px rgba(0,0,0,.10); position: sticky; top: 16px; }
-  .meta-box .label { color:#666; display:inline-block; width:72px; vertical-align: top; }
-  .meta-box .value { color:#111; font-weight:800; }
-  .meta-box .value-block { color:#111; font-weight:600; white-space: pre-wrap; word-break: break-word; display: inline; }
-
   .hl-red{ color:var(--hl-red); font-weight:800; }
+  /* 修正：hl-green 应使用绿色变量 */
   .hl-green{ color:var(--hl-green); font-weight:800; }
   .subtle { color:var(--muted); font-size:12px; margin-top:4px; }
+  /* 出价次数 >3 时卡片底色变透明绿 */
+  .card-highcount {
+   background: rgba(0, 180, 0, 0.08); /* 柔和透明绿 */
+   border-color: rgba(0, 150, 0, 0.3);
+   box-shadow: 0 0 8px rgba(0, 150, 0, 0.15);
+   }
 
+  /* ========= 历史记录折叠（悬浮展开） ========= */
   .records-visible{}
   .records-more{ display:none; }
   .card:hover .records-more{ display:block; }
@@ -86,56 +164,216 @@
 <body>
   <div class="layout">
     <div class="left">
+
+      <!-- 顶部信息小框（启用 sticky） -->
+      <div class="meta-wrap">
+        <div class="meta-box" id="fixedMeta">
+          <!-- <div><span class="label">鸽子ID：</span><span class="value" id="m_id">-</span></div> -->
+          <div><span class="label">成绩：</span><span class="value" id="m_name">-</span></div>
+          <div><span class="label">环号：</span><span class="value" id="m_ring">-</span></div>
+          <div><span class="label">鸽主：</span><span class="value" id="m_matcher">-</span></div>
+          <hr>
+          <div class="value-block" id="m_content"></div>
+        </div>
+      </div>
+
+      <!-- 列表容器与错误信息 -->
       <div id="list"></div>
       <div id="error" class="err"></div>
     </div>
-
-    <aside class="right">
-      <div class="meta-box" id="fixedMeta">
-        <div><span class="label">鸽子ID：</span><span class="value" id="m_id">-</span></div>
-        <div><span class="label">环号：</span><span class="value" id="m_ring">-</span></div>
-        <div><span class="label">鸽主：</span><span class="value" id="m_matcher">-</span></div>
-        <div><span class="label">内容：</span><span class="value-block" id="m_content">-</span></div>
-      </div>
-    </aside>
   </div>
 
 <script>
+/**
+ * 整体自执行作用域，避免全局污染
+ */
 (() => {
-  const SSE_URL = "http://localhost:8001/sse/pigeon";
+  /* ==============================
+   * 1) 常量 & DOM 引用
+   * ============================== */
+  const SSE_URL = new URL('/sse/pigeon', window.location.origin); // SSE 拉流地址
 
   const list = document.getElementById("list");
   const errorBox = document.getElementById("error");
-  const mId = document.getElementById("m_id");
+  // const mId = document.getElementById("m_id");
+  const mName = document.getElementById("m_name");
   const mRing = document.getElementById("m_ring");
   const mMatcher = document.getElementById("m_matcher");
   const mContent = document.getElementById("m_content");
 
-  const showError = msg => errorBox.textContent = msg || "";
-  const safe = v => (v===0 ? 0 : (v ?? "-"));
-  const groupBy = (arr, keyFn) => { const m=new Map(); (arr||[]).forEach(r=>{ const k=keyFn(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r); }); return m; };
-  const displayQuote = v => (v==null ? "-" : (typeof v === "object" ? (()=>{ try{return JSON.stringify(v);}catch{return "-";} })() : String(v)));
-  const toChars = s => Array.from((s ?? "").toString());
-  function fmtMoney(v){ const n = Number(v); return Number.isFinite(n) ? n.toLocaleString("zh-CN") : displayQuote(v); }
+  /* ==============================
+   * 2) 工具函数
+   * ============================== */
 
+  /** 显示错误文本 */
+  const showError = msg => errorBox.textContent = msg || "";
+
+  /** 安全显示：0 保留，null/undefined 显示 "-" */
+  const safe = v => (v===0 ? 0 : (v ?? "-"));
+
+  /** 按 keyFn 进行分组 */
+  const groupBy = (arr, keyFn) => {
+    const m=new Map();
+    (arr||[]).forEach(r=>{
+      const k=keyFn(r);
+      if(!m.has(k)) m.set(k,[]);
+      m.get(k).push(r);
+    });
+    return m;
+  };
+
+  /** 兜底显示对象/数字/字符串 */
+  const displayQuote = v => (v==null ? "-" : (typeof v === "object"
+    ? (()=>{ try{return JSON.stringify(v);}catch{return "-";} })()
+    : String(v)));
+
+  /** 把字符串安全拆为字符数组（支持 emoji） */
+  const toChars = s => Array.from((s ?? "").toString());
+
+  /** 金额格式化（千分位） */
+  function fmtMoney(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toLocaleString("zh-CN") : displayQuote(v);
+  }
+
+  /**
+   * 高亮给定字符集合中的字符
+   * @param {string} str - 原始字符串
+   * @param {Set<string>} set - 需要高亮的字符集合
+   * @param {string} cls - 高亮使用的 CSS 类
+   */
   function highlightWithSet(str, set, cls){
     const out = toChars(str).map(ch => set.has(ch) ? `<span class="${cls}">${ch}</span>` : ch).join("");
     return out || "-";
   }
 
+  /** 从 payload 中拿 items（兼容数组或 {items:[]}） */
   function pickItems(payload) { return Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : []; }
+
+  /** 当前项 ID（若有） */
   function pickCurrent(payload) { return payload?.current_id ?? null; }
 
+  /** 文本做 XSS 转义 */
+  function escapeHtml(s){
+    return String(s)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
+
+  /**
+   * ========== 统一“出价时间”字段定义 ==========
+   * 后台可能叫 create_time / createTime / ctime / created_at / createdAt 等，
+   * 这里统一规范为“毫秒级”时间戳返回，便于后续格式化。
+   * 若取不到或无效，返回 null。
+   */
+  function pickCreateTimeMs(item){
+    // 兼容多种命名
+    const raw = item?.create_time ?? item?.createTime ?? item?.ctime ?? item?.created_at ?? item?.createdAt;
+    if (raw == null) return null;
+
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+
+    // 秒或毫秒判断
+    return n < 1e12 ? n * 1000 : n;
+  }
+
+  /**
+   * 格式化时间戳（自动兼容秒/毫秒）
+   * @param {number} ts - 时间戳（秒或毫秒均可）
+   * @returns "YYYY-MM-DD hh:mm:ss"
+   */
+  function formatTime(ts) {
+    const ms = ts < 1e12 ? ts * 1000 : ts; // 兼容：若传入秒，转毫秒
+    const date = new Date(ms);
+    const Y = date.getFullYear();
+    const M = String(date.getMonth() + 1).padStart(2, '0');
+    const D = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+    return `${Y}-${M}-${D} ${h}:${m}:${s}`;
+  }
+      /**
+     * 将毫秒级时间戳格式化为相对时间（中文）
+     * @param {number} msTs - 毫秒时间戳
+     * @returns {string}
+     */
+    function formatRelative(msTs){
+      const now = Date.now();
+      let diff = Math.max(0, Math.floor((now - msTs) / 1000)); // 秒
+
+      if (diff < 5) return '刚刚';
+      if (diff < 60) return `${diff} 秒前`;
+
+      const mins = Math.floor(diff / 60);
+      if (mins < 60) return `${mins} 分钟前`;
+
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return `${hours} 小时前`;
+
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `${days} 天前`;
+
+      const weeks = Math.floor(days / 7);
+      if (weeks < 5) return `${weeks} 周前`;
+
+      const months = Math.floor(days / 30);
+      if (months < 12) return `${months} 个月前`;
+
+      const years = Math.floor(days / 365);
+      return `${years} 年前`;
+    }
+
+    /**
+     * 扫描页面所有出价时间徽标，更新其相对时间文本
+     * 要求：徽标容器 .time-right 上有 data-ts（毫秒时间戳）
+     */
+    function updateAllRelativeTimes(){
+      document.querySelectorAll('.time-right[data-ts]').forEach(el => {
+        const ts = Number(el.getAttribute('data-ts'));
+        if (!Number.isFinite(ts)) return;
+        // 找到相对时间行 .sub（若不存在则创建）
+        let sub = el.querySelector('.sub');
+        if (!sub) {
+          sub = document.createElement('div');
+          sub.className = 'sub';
+          el.appendChild(sub);
+        }
+        sub.textContent = formatRelative(ts);
+      });
+    }
+
+
+  /* ==============================
+   * 3) 顶部 meta 区域渲染
+   * ============================== */
   function renderCurrentMeta(current) {
-    mId.textContent = safe(current?.id);
+    // mId.textContent = safe(current?.id);
+    mName.textContent = current?.name;
     mRing.textContent = safe(current?.footring ?? current?.foot_ring ?? current?.ring);
     const matcherName = current?.matchername ?? current?.matcher_name ?? current?.matcher;
     mMatcher.textContent = safe(matcherName);
 
     const contentVal = current?.content ?? current?.xlsx_content ?? current?.desc ?? current?.description;
-    mContent.textContent = (contentVal == null ? "-" : (typeof contentVal === "object" ? JSON.stringify(contentVal) : String(contentVal)));
+
+    // 分号（；或 ;）换行 + XSS 安全转义
+    if (contentVal == null) {
+      mContent.textContent = "-";
+    } else if (typeof contentVal === "object") {
+      mContent.textContent = JSON.stringify(contentVal);
+    } else {
+      const parts = String(contentVal).split(/[；;]+/).map(s => s.trim()).filter(Boolean);
+      mContent.innerHTML = parts.length ? parts.map(escapeHtml).join("<br>") : escapeHtml(String(contentVal));
+    }
   }
 
+  /* ==============================
+   * 4) 列表渲染核心
+   * ============================== */
   function render(payload) {
     const current = pickCurrent(payload) || {};
     const currentMatcherName = (current?.matchername ?? current?.matcher_name ?? "").toString();
@@ -145,41 +383,98 @@
 
     list.innerHTML = "";
     const items = pickItems(payload);
-    if (!items.length) { list.innerHTML = `<div class="center-muted">暂无数据</div>`; return; }
+    if (!items.length) {
+      list.innerHTML = `<div class="center-muted">暂无数据</div>`;
+      return;
+    }
 
     items.forEach(item => {
       const userNickname = (item.user_nickname ?? "").toString();
       const userCode = item.user_code ?? "";
       const count = item.count;
+
+      // —— 历史记录数组兜底提取 —— //
       const results = item.results || {};
       let historyRows = Array.isArray(results[userCode]) ? results[userCode] : null;
       if (!historyRows || !historyRows.length) {
-        for (const v of Object.values(results)) { if (Array.isArray(v) && v.length) { historyRows = v; break; } }
+        for (const v of Object.values(results)) {
+          if (Array.isArray(v) && v.length) { historyRows = v; break; }
+        }
       }
       historyRows = historyRows || [];
 
+      // —— 构建卡片 —— //
       const card = document.createElement("div");
       card.className = "card";
 
+      // ====== 出价次数 or 相似度高亮判断 ======
+      let highCount = Number(item.count) > 3;
+      let highSim = false;
+
+      // 检查历史记录相似度（取最高一组的 _match_score）
+      if (item.results) {
+        for (const v of Object.values(item.results)) {
+          if (Array.isArray(v) && v.length) {
+            const sim = Number(v[0]?._match_score ?? 0);
+            if (sim > 0.8) { // 相似度 > 0.8（80%）
+              highSim = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // 若任一条件成立，添加绿色底样式
+      if (highCount || highSim) {
+        card.classList.add("card-highcount");
+      }
+
+      // 标题：出价人（与当前匹配人名字符交集做高亮）
       const title = document.createElement("div");
       title.className = "title";
       const greenNick = highlightWithSet(userNickname, currentSet, 'hl-green');
       title.innerHTML = `出价人：<span class="nick">${greenNick}</span>`;
       card.appendChild(title);
 
+      // 当前出价金额
       const base2 = document.createElement("div");
       base2.className = "line line-strong";
       base2.textContent = `当前出价：¥${fmtMoney(item.quote)} `;
       card.appendChild(base2);
 
+      // 出价 ID 与出价次数
       const base = document.createElement("div");
       base.className = "line line-strong";
       base.innerHTML = `
         <span>出价id：${safe(userCode)}</span>
         <span class="right">出价次数：${safe(count)}</span>
-        `;
+      `;
       card.appendChild(base);
 
+      // 右上角徽标：出价时间（加深）+ 相对时间
+    const createTimeMs = pickCreateTimeMs(item);
+    if (createTimeMs) {
+      const timeRight = document.createElement("div");
+      timeRight.className = "time-right";
+      timeRight.setAttribute('data-ts', String(createTimeMs)); // 用于后续相对时间刷新
+
+      // 第一行：绝对时间
+      const row = document.createElement('div');
+      row.innerHTML = `<span class="label">出价时间：</span><span class="value">${formatTime(createTimeMs)}</span>`;
+      timeRight.appendChild(row);
+
+      // 第二行：相对时间（先渲染一次，之后由定时器刷新）
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.textContent = formatRelative(createTimeMs);
+      timeRight.appendChild(sub);
+
+      card.appendChild(timeRight);
+      updateAllRelativeTimes();// 渲染完成后，立即刷新一次相对时间显示
+    }
+
+
+      // 历史拍得记录（按 matcher_name 分组）
       const groups = groupBy(historyRows, r => (r?.matcher_name ?? "-").toString().trim());
       if (groups.size === 0) {
         const none = document.createElement("div");
@@ -187,7 +482,7 @@
         none.textContent = "历史拍得记录：暂无";
         card.appendChild(none);
       } else {
-        const MAX_GROUPS = 3;
+        const MAX_GROUPS = 3; // 首屏最多展示 3 组，更多悬浮展开
         const visibleWrap = document.createElement('div');
         visibleWrap.className = 'records-visible';
         const moreWrap = document.createElement('div');
@@ -198,13 +493,16 @@
           const matcherName = matcherNameRaw || "-";
           const group = document.createElement("div");
           group.className = "group";
+
+          // 聚合信息：成交次数 & 相似度
           const aggCount = Number(arr[0]?._agg_count ?? arr.length) || arr.length;
           let sim = Number(arr[0]?._match_score ?? 0);
           sim = (sim * 100).toFixed(2);
+
           const redMatcher = highlightWithSet(matcherName, currentSet, 'hl-red');
           group.innerHTML = `历史拍得记录：${redMatcher}（相似度：${sim}%） | 成交次数：${aggCount}`;
 
-          // 先放入首条鸽子行到组内
+          // 第一条
           const first = arr[0];
           const line = document.createElement("div");
           line.className = "item";
@@ -214,7 +512,7 @@
           line.textContent = `└─ 鸽子：${name} 环号：${ring}  价格：${price}`;
           group.appendChild(line);
 
-          // （可选）把本组剩余记录也一并放入组内
+          // 其余条目
           for (let i = 1; i < arr.length; i++) {
             const r = arr[i];
             const extra = document.createElement("div");
@@ -226,7 +524,7 @@
             group.appendChild(extra);
           }
 
-          // 把“整组”丢到对应的 bucket（visible 或 more）
+          // 分发到“可见区/更多区”
           const bucket = (idxGroup < MAX_GROUPS) ? visibleWrap : moreWrap;
           bucket.appendChild(group);
           idxGroup++;
@@ -242,23 +540,55 @@
         }
       }
 
+      // 把卡片挂到列表
       list.appendChild(card);
     });
   }
 
+  /* ==============================
+   * 5) SSE 连接与消息处理
+   * ============================== */
   function connect(){
     const es = new EventSource(SSE_URL);
+
     es.onopen = () => { showError(""); };
+    setInterval(updateAllRelativeTimes, 60 * 1000);
+    // 浏览器底层错误（网络/断开等），此处不强行关闭，交给后端与浏览器自动重连策略
     es.onerror = () => {};
+
+    // 服务器发送的「bids」事件：主数据源
     es.addEventListener("bids", (ev) => {
-      try { const data = JSON.parse(ev.data); render(data); showError(""); }
-      catch (err) { showError("数据解析错误：" + (err?.message || err)); }
+      try {
+        const data = JSON.parse(ev.data);
+        render(data);
+        showError("");
+      } catch (err) {
+        showError("数据解析错误：" + (err?.message || err));
+      }
     });
+
+    // 服务器发送的错误事件（业务错误）
+    es.addEventListener("error", (ev) => {
+      try {
+        const err = JSON.parse(ev.data);
+        showError('服务端错误：' + (err?.message || ev.data));
+      } catch {
+        showError('服务端错误：' + (ev.data || 'unknown'));
+      }
+    });
+
+    // 默认 message 回退（有些后端直接用 onmessage）
     es.onmessage = (ev) => {
       if (!ev?.data) return;
-      try { const data = JSON.parse(ev.data); render(data); showError(""); } catch {}
+      try {
+        const data = JSON.parse(ev.data);
+        render(data);
+        showError("");
+      } catch {}
     };
   }
+
+  // 启动连接
   connect();
 })();
 </script>

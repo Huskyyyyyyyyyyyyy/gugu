@@ -42,7 +42,7 @@ _handlers = PigeonHandlers(pool=_pool, cfg=_cfg, logger=_log)
 # 正则触发：实时处理（MQTT）
 @on_topic(r"^pigeon/auctions/(?P<auction>\d+)/pigeons/(?P<pigeon>\d+)$")
 async def handle_pigeon_auction(ev: Event, m: re.Match):
-    """实时触发：获取当前 PID 并抓取，然后发布给 SSE。"""
+    """实时触发：获取当前 PID 并抓取，然后装车发布给 SSE。"""
     current_info,records = await _handlers.process_current_pid(reason="realtime", debounce=True)
     await bus.publish(records_to_payload(records,current_info))
 

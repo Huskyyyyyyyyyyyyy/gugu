@@ -12,10 +12,15 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from contextlib import suppress
 from decimal import Decimal
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import RedirectResponse
+from starlette.staticfiles import StaticFiles
 
 # —— 项目内导入 —— #
 from pigeon_socket.bus import bus
@@ -45,6 +50,26 @@ def _json_default(o):
 def build_sse_app() -> FastAPI:
     app = FastAPI(title="Pigeon SSE Server", version="1.0.0")
 
+    # ========== Static files mounting ==========
+    # 前端目录挂到 /static
+    static_dir = Path(r"D:\pareedo\gugu\gugu2\front")
+    if not static_dir.exists():
+        # 如果路径不存在，打印提示（便于调试）
+        print(f"[SSE] static dir not found: {static_dir}")
+    else:
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        print(f"[SSE] static files served at /static from {static_dir}")
+
+    # 根路径重定向到 index.html（方便在浏览器直接访问 http://<host>:<port>/ ）
+    @app.get("/")
+    async def _index():
+        # 如果没有 index.html，则返回一个简单提示 JSON
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return RedirectResponse(url="/static/index.html")
+        return {"msg": "static index not found, visit /static to list files."}
+    # ===========================================
+
     # 允许跨域（前端在不同端口时必须加）
     app.add_middleware(
         CORSMiddleware,
@@ -60,10 +85,6 @@ def build_sse_app() -> FastAPI:
 
     @app.post("/api/trigger")
     async def _t():
-        """
-        调试接口：返回当前快照。
-        不触发抓取，仅用于前端排查。
-        """
         snap = bus.peek()
         if snap is None:
             return JSONResponse(error_payload("no snapshot yet"), status_code=503)
@@ -71,12 +92,6 @@ def build_sse_app() -> FastAPI:
 
     @app.get("/sse/pigeon")
     async def _sse(request: Request):
-        """
-        SSE 主入口：
-          - 首次连接 → 立即推送当前快照；
-          - 后续等待 bus 更新 → 推送；
-          - 超时则发 keep-alive。
-        """
         try:
             q = request.query_params
             try:
@@ -86,19 +101,16 @@ def build_sse_app() -> FastAPI:
             interval_ms = max(50, interval_ms)
 
             async def gen():
-                # 1️⃣ 初次推送当前快照
                 snap = bus.peek()
                 if snap is not None:
                     yield f"event: bids\ndata: {json.dumps(snap, ensure_ascii=False, default=_json_default)}\n\n".encode("utf-8")
 
-                # 2️⃣ 等待更新循环
                 while True:
                     if await request.is_disconnected():
                         break
 
                     snap = await bus.wait_update(timeout=15.0)
                     if snap is None:
-                        # 发送心跳保持连接
                         yield b": keep-alive\n\n"
                         continue
 
@@ -112,7 +124,6 @@ def build_sse_app() -> FastAPI:
             return StreamingResponse(gen(), media_type="text/event-stream", headers=headers)
 
         except Exception as e:
-            # ❗任意异常 → 返回单次 error 事件（JSON）
             def one_error():
                 err = error_payload(f"setup error: {e}")
                 yield f"event: error\ndata: {json.dumps(err, ensure_ascii=False, default=_json_default)}\n\n".encode("utf-8")
@@ -125,7 +136,6 @@ def build_sse_app() -> FastAPI:
             return StreamingResponse(one_error(), media_type="text/event-stream", headers=headers)
 
     return app
-
 
 # ────────────────────────────────────────────────────────────────
 # 启动与停止：可供主程序 trigger_main 调用
@@ -160,15 +170,18 @@ async def start_sse_background(host: str = "0.0.0.0", port: int = 8000) -> SseSe
 
     task = asyncio.create_task(_serve(), name=f"pigeon-sse:{port}")
     await asyncio.sleep(0.1)
-    print(f"[SSE] Server started on http://{host}:{port}/sse/pigeon")
+    ip = "127.0.0.1" if host in ("0.0.0.0", "localhost") else host
+    print(f"[SSE] SSE server started: http://{ip}:{port}/sse/pigeon")
+    print(f"[SSE] Frontend address:  http://{ip}:{port}/static/index.html")
+
     return SseServerHandle(server, task)
 
 
-async def stop_sse_background(handle: SseServerHandle):
-    """优雅关闭 SSE 服务"""
+async def stop_sse_background(handle):
+    """关闭 SSE 服务"""
     if not handle:
         return
     handle.server.should_exit = True
     handle.task.cancel()
-    with asyncio.suppress(asyncio.CancelledError):
+    with suppress(asyncio.CancelledError):
         await handle.task

@@ -1,13 +1,8 @@
 # crawlers/jcurrent_pigeons.py
 from __future__ import annotations
-
-import json
-from copy import deepcopy
 from pprint import pprint
 from typing import Any, Optional, Dict, List
 from requests import Response
-from scrapy.crawler import Crawler
-
 from commons.base_crawler import BaseCrawler
 from commons.base_logger import BaseLogger
 from tools.config_loader import load_config
@@ -132,6 +127,12 @@ class CurrentPigeonsCrawler(BaseCrawler):
         except Exception:
             self.logger.log_warning(f"顶层 id 不是整数：{pid}")
             result["id"] = None
+        # 获取name
+        try:
+            result["name"] = data.get("name")
+        except Exception:
+            self.logger.log_warning("没有name")
+            result["name"] = None
 
         # 获取 footring
         result["footring"] = data.get("footring")

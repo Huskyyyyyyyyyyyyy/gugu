@@ -35,7 +35,7 @@ auction_pigeons:
 
 #当前拍卖鸽
 current_pigeons:
-  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/317/pigeons/current"
+  api_url: "https://service.jingjia.guguxinge.com/api//client/auction/api/v1/auctions/331/pigeons/current"
   delay: 2
   max_retries: 3
   timeout: 10
@@ -51,7 +51,7 @@ pid_pigeons:
     pageno: 0
 
 #直播间url
-TARGET_URL: "https://cdn.guguxinge.com/jingjia/#/live?auctionid=317&h=%5B%22home%22%2C%22auctiondetl%22%5D"
+TARGET_URL: "https://cdn.guguxinge.com/jingjia/#/live?auctionid=331&h=%5B%22home%22%2C%22auctiondetl%22%5D"
 
 context:
   xlsx_path: "D:\\pareedo\\gugu\\gugu2\\context\\拍卖手册.xlsx"

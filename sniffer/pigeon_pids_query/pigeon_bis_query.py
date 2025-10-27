@@ -149,7 +149,7 @@ class PigeonService:
         return records
 
     # =========================================================================
-    # 内部工具方法（仅本类使用）
+    # 内部工具方法
     # =========================================================================
     @staticmethod
     def _extract_unique_online_user_codes(records: Iterable[BidRecord]) -> List[str]:
@@ -282,7 +282,7 @@ class PigeonService:
         records: Iterable['BidRecord'],
         *,
         fuzzy_threshold: float = 0.8,
-        compare_name: str | None = None,   # 新增参数：用它与 matcher_name 比,
+        compare_name: str | None = None,   # 参数：与 matcher_name 比较
     ) -> None:
         """
         对每条记录的 results[user_code] 应用自定义排序（含模糊匹配）并附加可视化字段。
@@ -361,7 +361,7 @@ class PigeonService:
         调试输出：用于在开发/联调阶段快速核对装配结果。
         生产环境可降低日志级别或关闭。
         """
-        pprint(records)
+        # pprint(records)
         pass
 
         # for r in records:
@@ -370,7 +370,7 @@ class PigeonService:
         #     self.log.log_info(
         #         f"[RECORD] code={r.code} user={uc} count={r.count} history={len(rows)}"
         #         )
-        #     # 如需展开打印单条历史，可临时打开如下循环：
+        #     #展开打印单条历史
         #     for item in rows:
         #         self.log.log_info(
         #             f"  └─ 鸽主:{item.get('matcher_name','')} "

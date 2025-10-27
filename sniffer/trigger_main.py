@@ -28,11 +28,6 @@ from trigger import Trigger             # 核心触发器：处理 WS 消息队�
 from models import Event                # 统一事件模型
 from setting import QUEUE_CAP, TRIGGER_TEXT, MIN_BIN_LEN  # 配置参数
 
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, JSONResponse
-from pigeon_socket.adapters.bidrecord_payload import records_to_payload, error_payload
-from sniffer.flows.pigeon_flow import get_handlers
-import uvicorn
 
 # —— flows 包自动加载所有业务流程并注册到路由中 ——
 # flows/__init__.py 会调用 autoload_flows() 自动导入所有 flow 文件，
@@ -89,7 +84,7 @@ async def main():
     # 注册两个 handler：
     #   1. print_handler：打印所有事件（调试用）
     #   2. topic_router：flows 路由器（负责将事件分发到具体业务 flow）
-    trigger.on(print_handler)
+    # trigger.on(print_handler)
     trigger.on(topic_router)
 
     # 启动触发器的消费者协程（用于异步处理队列中的 WS 消息）
@@ -101,10 +96,10 @@ async def main():
     sse_handle = await start_sse_background(host="0.0.0.0", port=8001)
 
     try:
-        # —— 你的浏览器抓取主循环（原样）
+        # —— 浏览器抓取主循环
         await run_browser(trigger, stop_evt)
     finally:
-        # ✅ 优雅关闭 SSE
+        # 关闭 SSE
         await stop_sse_background(sse_handle)
     try:
         # —— 启动浏览器并进入主循环

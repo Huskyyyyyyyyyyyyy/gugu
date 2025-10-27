@@ -361,7 +361,7 @@ class PigeonService:
         调试输出：用于在开发/联调阶段快速核对装配结果。
         生产环境可降低日志级别或关闭。
         """
-        pprint(records)
+        # pprint(records)
         pass
 
         # for r in records:

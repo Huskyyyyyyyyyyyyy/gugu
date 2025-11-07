@@ -1,97 +1,14 @@
-2025-10-27 00:38:52,414 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
+2025-11-11 00:01:09,571 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 503 Server Error: Service Temporarily Unavailable for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
 Traceback (most recent call last):
   File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
     resp.raise_for_status()
   File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
     raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 01:38:56,228 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
+requests.exceptions.HTTPError: 503 Server Error: Service Temporarily Unavailable for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
+2025-11-11 01:01:13,692 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 503 Server Error: Service Temporarily Unavailable for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
 Traceback (most recent call last):
   File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
     resp.raise_for_status()
   File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
     raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 02:38:58,040 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
-    resp.raise_for_status()
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 03:39:41,068 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: HTTPSConnectionPool(host='service.jingjia.guguxinge.com', port=443): Max retries exceeded with url: /api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)'))) proxy=none
-urllib3.exceptions.SSLError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\adapters.py", line 667, in send
-    resp = conn.urlopen(
-           ^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py", line 871, in urlopen
-    return self.urlopen(
-           ^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py", line 871, in urlopen
-    return self.urlopen(
-           ^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py", line 871, in urlopen
-    return self.urlopen(
-           ^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
-    retries = retries.increment(
-              ^^^^^^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\util\retry.py", line 519, in increment
-    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='service.jingjia.guguxinge.com', port=443): Max retries exceeded with url: /api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)')))
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 208, in _request
-    resp = self.session.request(
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\sessions.py", line 589, in request
-    resp = self.send(prep, **send_kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\sessions.py", line 703, in send
-    r = adapter.send(request, **kwargs)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\adapters.py", line 698, in send
-    raise SSLError(e, request=request)
-requests.exceptions.SSLError: HTTPSConnectionPool(host='service.jingjia.guguxinge.com', port=443): Max retries exceeded with url: /api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)')))
-2025-10-27 04:39:42,599 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
-    resp.raise_for_status()
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 05:39:45,712 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
-    resp.raise_for_status()
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 06:39:48,750 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
-    resp.raise_for_status()
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 07:39:51,969 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
-    resp.raise_for_status()
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
-2025-10-27 08:39:55,771 | GongPengCrawler | ERROR | [base_logger.py:100 log_error] | MainThread | GET https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions 失败: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0 proxy=none
-Traceback (most recent call last):
-  File "D:\pareedo\gugu\gugu2\commons\base_crawler.py", line 226, in _request
-    resp.raise_for_status()
-  File "C:\Users\LEGION\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 405 Client Error: Not Allowed for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0
+requests.exceptions.HTTPError: 503 Server Error: Service Temporarily Unavailable for url: https://service.jingjia.guguxinge.com/api/client/auction/api/v1/auctions?pagesize=999999&pageno=0

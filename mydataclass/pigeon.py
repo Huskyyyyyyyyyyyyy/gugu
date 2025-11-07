@@ -21,6 +21,13 @@ class PigeonInfo(BaseDataClass):
     auction_id: int
     name: str
 
+
+    # —— 新增：所有拍卖场的统计字段 ——
+    deal_count_all: Optional[int] = None
+    total_price_all: Optional[float] = None
+    highest_price_all: Optional[float] = None
+    second_highest_price_all: Optional[float] = None
+
     # —— 其它字段（可空，默认 None；由转换器做类型收敛）——
     auction_type: Optional[str] = None
     margin_ratio: Optional[float] = None
@@ -114,6 +121,11 @@ class PigeonInfo(BaseDataClass):
         "create_admin_id": None,
         "specified_count": None,
         "specified_sync": None,
+        # 新增：全部拍卖场统计字段
+        "deal_count_all": None,
+        "total_price_all": None,
+        "highest_price_all": None,
+        "second_highest_price_all": None,
     }
 
     # —— 字段映射（接口 -> 内部）。保持你原来的键位，便于无缝替换 ——

@@ -8,12 +8,13 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 from __future__ import annotations
-from typing import List, Any, Coroutine
+
+from typing import Any
+
 from commons.base_logger import BaseLogger
-from mydataclass.record import BidRecord
-from .crawler_pool import CrawlerPool
-from .pigeon_config import PigeonConfig
-from ..pigeon_pids_query.pigeon_bis_query import PigeonService
+from sniffer.flows.crawler_pool import CrawlerPool
+from sniffer.flows.pigeon_config import PigeonConfig
+from sniffer.pigeon_pids_query.pigeon_bis_query import PigeonService
 
 
 class PigeonHandlers:
@@ -120,3 +121,5 @@ class PigeonHandlers:
     #     if self.cfg.debug_verbose:
     #         size = (len(bids) if hasattr(bids, "__len__") and bids is not None else 0)
     #         self.log.log_debug(f"[Bids] pid={pid} size={size} via slot#{idx}")
+
+

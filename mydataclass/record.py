@@ -27,13 +27,18 @@ class BidRecord(BaseDataClass):
     # 这两个改为可选，稍后由上层填充
     count: Optional[int] = None
     results: Optional[Dict[str, List[Dict[str, Any]]]] = None
-
+    # 新增的拍卖统计字段
+    auction_bid_count: Optional[int] = 0  # 本场拍得次数，默认 0
+    auction_total_price: Optional[float] = 0.0  # 拍得总价，默认 0.0
+    auction_highest_price: Optional[float] = 0.0  # 拍得最高价，默认 0.0
+    auction_second_highest_price: Optional[float] = 0.0  # 拍得次高价，默认 0.0
     # —— 其他信息字段 ——
     pigeon_code: Optional[str] = None
     pigeon_name: Optional[str] = None
     user_id: Optional[int] = None
     user_code: Optional[str] = None
     user_nickname: Optional[str] = None
+    match_score: Optional[float] = None
     user_avatar: Optional[str] = None
     type: Optional[str] = None
     margin: Optional[float] = None
@@ -63,6 +68,11 @@ class BidRecord(BaseDataClass):
         "cancel_user_id": None,
         "cancel_admin_id": None,
         "results": None,
+        "match_score": None,  # 新增的默认字段
+        "auction_bid_count": 0,  # 新增字段的默认值
+        "auction_total_price": 0.0,  # 新增字段的默认值
+        "auction_highest_price": 0.0,  # 新增字段的默认值
+        "auction_second_highest_price": 0.0,  # 新增字段的默认值
     }
 
     FIELD_MAPPING: ClassVar[Dict[str, str]] = {
@@ -114,7 +124,12 @@ class BidRecord(BaseDataClass):
         "type": empty_to_none,
         "status": empty_to_none,
 
-        # 不要给 results 配 converter；让它保持结构化字典
+        "match_score": to_float_or_none,  # 新增字段转换
+        "auction_total_price": to_float_or_none,  # 新增字段转换
+        "auction_highest_price": to_float_or_none,  # 新增字段转换
+        "auction_second_highest_price": to_float_or_none,  # 新增字段转换
+
+        # 让它保持结构化字典
     }
 
     @classmethod

@@ -147,7 +147,17 @@ def _one(r: BidRecord) -> Dict[str, Any]:
         "pigeon_id": getattr(r, "pigeon_id", None),
         "pigeon_code": getattr(r, "pigeon_code", None),
         "pigeon_name": getattr(r, "pigeon_name", None),
+        "auction_bid_count": getattr(r, "auction_bid_count", None),
+        "auction_total_price": getattr(r, "auction_total_price", None),
+        "auction_highest_price": getattr(r, "auction_highest_price", None),
+        "auction_second_highest_price": getattr(r, "auction_second_highest_price", None),
 
+        # 新增：所有拍卖场统计
+        "auction_bid_count_all": getattr(r, "auction_bid_count_all", None),
+        "auction_total_price_all": getattr(r, "auction_total_price_all", None),
+        "auction_highest_price_all": getattr(r, "auction_highest_price_all", None),
+        "auction_second_highest_price_all": getattr(r, "auction_second_highest_price_all", None),
+        "match_score": getattr(r, "match_score", None),
         "user_id": getattr(r, "user_id", None),
         "user_code": user_code,
         "user_nickname": getattr(r, "user_nickname", None) or getattr(r, "usernickname", None),

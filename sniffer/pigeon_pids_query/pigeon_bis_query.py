@@ -1,6 +1,6 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# 模块用途：承载“纯业务逻辑”
-# 说明：
+#
+#
 #   - 只做：抓取当前 PID → 装配 BidRecord → 查询历史成交 → 注入 → 排序/可视化字段；
 #   - 不做：路由、实例化、网络传输（WebSocket/SSE）、去抖等（留在 handlers 或更外层）；
 #   - 便于单元测试：所有逻辑为纯函数/可控 I/O（DB 查询放入后台线程，避免阻塞事件循环）。
@@ -22,7 +22,7 @@ from mydataclass.record import BidRecord
 from dao.pigeon_dao import PigeonDao
 from sniffer.flows.crawler_pool import CrawlerPool
 from sniffer.flows.pigeon_config import PigeonConfig
-
+from fuzzywuzzy import fuzz
 
 class PigeonService:
     """
@@ -108,7 +108,8 @@ class PigeonService:
 
         return current_info, bids
 
-    async def build_bid_records_with_history(self, raw_bids: List[Dict[str, Any]],compare_name:str) -> List[BidRecord]:
+    async def build_bid_records_with_history(self, raw_bids: List[Dict[str, Any]], compare_name: str,
+                                             ) -> List[BidRecord]:
         """
         装配流程（异步）：
           1) 封装：上游 bids(list[dict]) → List[BidRecord]（内部已按 user_code 统计 count）
@@ -122,7 +123,7 @@ class PigeonService:
         records = BidRecord.from_list(raw_bids, strict=False, log_errors=True)
 
         # 2) 抽取需查询的在线出价人编码
-        user_codes = self._extract_unique_online_user_codes(records)
+        user_codes,auction_id = self._extract_unique_online_user_codes(records)
 
         if not user_codes:
             # 无需查询时，也为前端填入空 results，避免判空逻辑
@@ -132,39 +133,94 @@ class PigeonService:
             self.log.log_info("[DB] 无在线出价人需要查询，results 置为空集合")
             return records
 
-        # 3) 在后台线程里执行同步 DB 查询，避免阻塞事件循环
-        result_map = await self._query_history_in_background(user_codes)
+        # 3) 调用查询函数，并解包结果
+        statistics, deals = await self._query_history_in_background(user_codes, auction_id)
 
         # 4) 注入每条记录的 results：只挂与该记录 user_code 对应的结果（引用，不深拷贝）
-        self._inject_results_into_records(records, result_map)
+        self._inject_results_into_records(records, deals)
+        self._inject_statistics_into_records(records, statistics)
 
-        # 5) 排序与可视化字段（阈值可从配置读取）
+        # 5) 计算 match_score —— 这部分是外层需要的计算
+        for r in records:
+            user_nickname = r.user_nickname
+            if user_nickname and compare_name:
+                match_score = self._similarity(user_nickname, compare_name)
+                r.match_score = match_score
+
+        # 6) 排序与可视化字段（阈值可从配置读取）
         fuzzy_threshold = getattr(self.cfg, "fuzzy_threshold", 0.8) or 0.8
-        self._apply_custom_sort_rules_with_fuzzy(records, fuzzy_threshold=float(fuzzy_threshold),compare_name=compare_name)
-
-        # 可选调试输出：简要核对装配情况
-        if self.cfg.debug_verbose:
-            self._debug_dump(records)
-
+        self._apply_custom_sort_rules_with_fuzzy(
+            records, fuzzy_threshold=float(fuzzy_threshold), compare_name=compare_name
+            )
+        pprint(records)
         return records
 
     # =========================================================================
     # 内部工具方法
     # =========================================================================
     @staticmethod
-    def _extract_unique_online_user_codes(records: Iterable[BidRecord]) -> List[str]:
+    def _extract_unique_online_user_codes(records: Iterable[BidRecord]) -> Tuple[List[str], Optional[int]]:
         """
-        从记录中提取“在线出价”的唯一 user_code 列表。
-        这样可以避免对同一批中重复 user_code 重复查询。
-        排序仅为日志与测试可重复性，非业务必要。
+        从记录中提取“在线出价”的唯一 user_code 列表，并返回对应的 auction_id。
         """
-        unique: Set[str] = {
-            r.user_code for r in records
-            if (r.type == "online" and r.user_code)
-        }
-        return sorted(unique)
+        unique: Set[str] = {r.user_code for r in records if (r.type == "online" and r.user_code)}
 
-    async def _query_history_in_background(self, user_codes: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        # 获取第一个记录的 auction_id
+        auction_id = None
+        # 尝试通过迭代器获取第一个元素的 auction_id
+        records_iter = iter(records)
+        try:
+            first_record = next(records_iter)  # 获取第一个元素
+            auction_id = first_record.auction_id
+        except StopIteration:
+            pass  # 如果 records 是空的，就会跳过并保持 auction_id 为 None
+        print(auction_id)
+        return sorted(unique), auction_id
+
+    @staticmethod
+    def _inject_statistics_into_records(
+            records: Iterable[BidRecord],
+            stats_map: Dict[str, Dict[str, Any]],
+            ) -> None:
+        """
+        将成交统计字段直接挂在 BidRecord 外层。
+        每条 record 会新增属性：
+            auction_bid_count, auction_total_price,
+            auction_highest_price, auction_second_highest_price
+        若无数据则置 0。
+        """
+        default = {
+            # 当前拍卖场
+            "deal_count": 0,
+            "total_price": 0.0,
+            "highest_price": 0.0,
+            "second_highest_price": 0.0,
+
+            # 全部拍卖场
+            "deal_count_all": 0,
+            "total_price_all": 0.0,
+            "highest_price_all": 0.0,
+            "second_highest_price_all": 0.0,
+            }
+
+        for r in records:
+            uc = (r.user_code or "").strip()
+            stat = stats_map.get(uc, default)
+
+            # —— 当前拍卖场统计 —— #
+            r.auction_bid_count = stat.get("deal_count", 0)
+            r.auction_total_price = stat.get("total_price", 0.0)
+            r.auction_highest_price = stat.get("highest_price", 0.0)
+            r.auction_second_highest_price = stat.get("second_highest_price", 0.0)
+
+            # —— 全部拍卖场统计 —— #
+            r.auction_bid_count_all = stat.get("deal_count_all", 0)
+            r.auction_total_price_all = stat.get("total_price_all", 0.0)
+            r.auction_highest_price_all = stat.get("highest_price_all", 0.0)
+            r.auction_second_highest_price_all = stat.get("second_highest_price_all", 0.0)
+
+    async def _query_history_in_background(self, user_codes: List[str],auction_id:int) -> tuple[dict[str, dict[str, Any]], dict[
+        str, list[dict[str, Any]]]] | dict[Any, Any]:
         """
         在后台线程中进行数据库查询（同步函数），避免阻塞事件循环。
         返回结构：
@@ -176,18 +232,20 @@ class PigeonService:
             ...
           }
         """
+
         def _run_db():
-            return self.dao.query_user_deal_records(
+            return self.dao.query_bid_statistics_and_deals(
                 user_codes=user_codes,
                 status_whitelist=("已完成", "已结拍"),
                 chunk_size=100,
-            )
+                auction_id=auction_id
+                )
 
         try:
-            return await asyncio.to_thread(_run_db)
+            return await asyncio.to_thread(_run_db)  # -> (statistics, deals)
         except Exception as e:
             self.log.log_error(f"[DB] 历史成交查询失败: {e}")
-            return {}
+            return {}, {}  # <- 始终二元组
 
     @staticmethod
     def _inject_results_into_records(
@@ -221,12 +279,11 @@ class PigeonService:
     @staticmethod
     def _similarity(a: str, b: str) -> float:
         """
-        使用标准库 difflib 计算相似度（0~1）。无需额外依赖。
-        如果未来要更强的相似度（编辑距离/模糊匹配），可切到 rapidfuzz。
+        使用 fuzzywuzzy 计算字符串相似度（0~1）。适合昵称级别的短文本。
         """
         if not a or not b:
             return 0.0
-        return difflib.SequenceMatcher(None, a, b).ratio()
+        return fuzz.ratio(a, b) / 100.0  # 将 [0, 100] 转换为 [0, 1] 之间的相似度
 
     @staticmethod
     def _lcs_highlight_spans(a: str, b: str) -> List[Tuple[int, int]]:
@@ -378,3 +435,4 @@ class PigeonService:
         #             f"环号:{item.get('foot_ring','')} "
         #             f"价格:{item.get('quote','')}"
         #         )
+

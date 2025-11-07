@@ -1,217 +1,400 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<title>不怎么好用的拍卖查询</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  /* ========= 主题与基础色板 ========= */
-  :root{
-    --brand:#0078d7;
-    --bg:#f7f8fa;
-    --text:#333;
-    --muted:#777;
-    --border:#e6e6e6;
-    --card:#fff;
-    --hl-red:#d0021b;
-    --hl-green: #9e1d1d;
-  }
+  <meta charset="UTF-8" />
+  <title>不怎么好用的拍卖查询</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  /* ========= 页面与布局 ========= */
-  body {
-    font-family: "Microsoft YaHei", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background:var(--bg);
-    margin:20px;
-    color:var(--text);
-  }
+  <style>
+    /* 主题变量 */
+    :root{
+      --brand:#0078d7;
+      --bg:#f6f7fb;
+      --text:#222;
+      --muted:#777;
+      --border:#e6e6e6;
+      --card:#fff;
+      --hl-red:#d0021b;
+      --hl-green:#0aaa55;
+      --hl-orange:#ff9800;
+    }
 
-  .layout{
-    max-width: 1460px;
-    margin: 0 auto;
-    display:flex;
-    gap:16px;
-    align-items:flex-start;
-  }
+    html,body{
+      height:100%;
+    }
 
-  .left{
-    flex: 1 1 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-width: 960px;       /* 固定内容区最大宽度 */
-    margin: 0 auto;         /* 居中对齐 */
-  }
-  /* 右上角出价时间（更醒目） */
-  .time-right{
+    /* 页面整体样式 */
+    body {
+      font-family: system-ui, -apple-system, "SF Pro Text", "Segoe UI", "Microsoft YaHei", Roboto, Arial, sans-serif;
+      background:var(--bg);
+      margin:0;
+      color:var(--text);
+      font-size:15px;
+    }
+
+    .page{
+      max-width: 1600px;   /* 限制最大宽度，*/
+      width: 100%;
+      margin: 24px auto;
+      padding: 0 16px;
+      box-sizing: border-box;
+    }
+
+    .layout{
+      display:flex;
+      align-items:flex-start;
+      gap:16px;
+    }
+
+    .left{
+      flex:1 1 auto;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      min-width:0;
+    }
+
+    /* 顶部当前鸽子信息（吸顶） */
+    .meta-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .meta-box{
+      background:#ffffffeb;
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:14px 16px;
+      font-size:15px;
+      line-height:1.65;
+      box-shadow:0 6px 16px rgba(0,0,0,.08);
+      width:100%;
+      box-sizing:border-box;
+      backdrop-filter: blur(4px);
+    }
+    .meta-box .label {
+      color:#666;
+      display:inline-block;
+      width:72px;
+      vertical-align: top;
+    }
+    .meta-box .value {
+      color:#111;
+      font-weight:800;
+    }
+    .meta-box .value-block {
+      color:#111;
+      font-weight:600;
+      white-space: pre-wrap;
+      word-break: normal;
+      display: inline;
+    }
+
+    /* 每个出价人的主卡片 */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.20);
+      position: relative;
+      margin-top: 14px;
+      box-sizing: border-box;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      width:100%;
+    }
+
+    /* 卡片之间的明显分割线（从第二张卡开始） */
+    .card + .card {
+      margin-top: 32px; /* 卡片之间垂直间距更大一点 */
+    }
+    .card + .card::before {
+      content: "";
       position: absolute;
-      top: 16px;
-      right: 20px;
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 900;   /* 加深显示 */
-      color: #000;        /* 深色文字 */
-      background: rgba(0,0,0,.04); /* 微底色，增强对比度 */
-      line-height: 1.4;
+      top: -18px;          /* 在线条位置稍微离上一张卡片一点 */
+      left: -16px;         /* 把线延伸到卡片 padding 外，左右顶边 */
+      right: -16px;
+      border-top: 2px dashed #d0d0d0;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    /* 卡片状态高亮颜色 */
+    .card.card-green{
+      background: rgba(10,170,85,0.06);
+      border-color: rgba(10,170,85,0.28);
+      box-shadow: 0 0 8px rgba(10,170,85,0.15);
+    }
+    .card.card-red{
+      background: rgba(208,2,27,0.06);
+      border-color: rgba(208,2,27,0.28);
+      box-shadow: 0 0 8px rgba(208,2,27,0.15);
+    }
+    .card.card-orange{
+      background: rgba(246, 122, 4, 0.06);
+      border-color: rgba(222, 144, 19, 0.28);
+      box-shadow: 0 0 8px rgba(255, 150, 0, 0.15);
+    }
+
+    /* 上半部分布局：拍主信息 + 本场统计 + 全部场统计 */
+    .card-top{
+      display:grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap:16px;
+      align-items:flex-start;
+    }
+    .card-top-left,
+    .card-top-mid,
+    .card-top-right{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width:0;
+    }
+
+    /* 下半部分：历史记录 */
+    .card-bottom{
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .history-block{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+    .history-header{
+      font-weight:800;
+      font-size:15px;
+      color:#000;
+      margin-bottom:4px;
+    }
+
+    /* 徽章：购买欲望高 / 鸽主 / 疑似鸽主 */
+    .badge{
+      font-size: 16px;
+      margin-left: 4px;
+      font-weight: 800;
+    }
+    .badge-green{ color: var(--hl-green); }
+    .badge-red{   color: var(--hl-red); }
+    .badge-orange{color: var(--hl-orange); }
+
+    .center-muted { text-align:center; color:#999; }
+    .err { text-align:center; color:#c0392b; margin-top:8px; }
+
+    .hl-red{ color:var(--hl-red); font-weight:800; }
+    .hl-green{ color:var(--hl-green); font-weight:800; }
+    .subtle { color:var(--muted); font-size:15px; margin-top:4px; }
+
+    /* 拍主信息 / 统计信息卡片：两列，不换行 */
+    .stats-right,
+    .info-card {
       white-space: nowrap;
-  }
-  /* 相对时间（显示在徽标第二行） */
-  .time-right .sub{
-      display: block;
-      font-size: 12px;
-      opacity: .65;
-      font-weight: 700;
-      margin-top: 2px;
-  }
+      grid-template-columns: auto auto;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      font-size:15px;
+      background:rgba(0,0,0,.035);
+      line-height:1.5;
+      display:grid;
+      column-gap:8px;
+      row-gap:6px;
+      box-sizing:border-box;
+    }
+
+    .info-card .label,
+    .stats-right .label{
+      color:#000;
+      opacity:.7;
+      font-weight:700;
+    }
+    .info-card .value,
+    .stats-right .value{
+      color:#000;
+      font-weight:900;
+      text-align:right;
+    }
+
+    .info-card .stat-item.full,
+    .stats-right .stat-item.full {
+      grid-column: 1 / -1;
+    }
+
+    .info-title {
+      grid-column: 1 / -1;
+      font-weight: 800;
+      font-size: 15px;
+      margin-bottom: 2px;
+      color: #000;
+    }
+
+    /* 拍得记录的小卡片：固定宽度 + 竖排 */
+    .history-item-card {
+      background: rgba(0, 123, 255, 0.06);
+      border: 1px solid rgba(0, 123, 255, 0.25);
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      margin-bottom: 10px;
+
+      display: block;          /* ❗竖排，每个占一行 */
+      width: 520px;            /* ❗固定卡片宽度（你可以改成 480/600 等） */
+      max-width: 100%;         /* 防止屏幕窄的时候超出 */
+      white-space: nowrap;     /* 里边不换行，保持一条 */
+    }
+
+    .records-visible,
+    .records-more {
+      display: flex;
+      flex-direction: column;     /* 垂直排列 */
+      align-items: flex-start;    /* 从左边对齐 */
+      gap: 6px;
+    }
 
 
-  .time-right .label{
-      opacity: .7;
-      font-weight: 700;
-      margin-right: 4px;
-  }
 
-  @media (max-width: 980px){
-    .layout{ flex-direction:column; }
-  }
+    .history-card {
+      margin-top: 4px;
+    }
 
-  /* ========= 卡片样式 ========= */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.05);
-    position: relative;
-    margin-top: 20px;   /* 每个卡片上方留空 */
-    box-sizing: border-box;
-  }
+    .group {
+      padding: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      margin-top: 0;
+    }
 
-  .title { font-size:16px; font-weight:800; margin-bottom:6px; }
-  .line { margin:5px 0; color:#555; }
+    .history-row {
+      grid-column: 1 / -1;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #333;
+      white-space: normal;
+    }
 
-  .line-strong {
-    display: flex;
-    justify-content: space-between; /* 左右两端对齐 */
-    align-items: center;
-    font-weight: 800;
-    color: #000;
-    width: 100%;
-  }
-  .line-strong .right {
-    margin-left: auto;   /* 确保右边靠最右 */
-    text-align: right;
-  }
+    .item {
+      margin-left:0;
+      white-space:normal;
+      line-height:1.7;
+    }
 
-  /* ========= 顶部信息小框 ========= */
-  .meta-wrap { position: sticky; top: 0; z-index: 10; }
-  .meta-box{
-    background:#ffffffeb;
-    border:1px solid #ddd;
-    border-radius:12px;
-    padding:14px 16px;
-    font-size:17px;
-    line-height:1.6;
-    box-shadow:0 6px 16px rgba(0,0,0,.10);
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .meta-box .label { color:#666; display:inline-block; width:72px; vertical-align: top; }
-  .meta-box .value { color:#111; font-weight:800; }
-  .meta-box .value-block { color:#111; font-weight:600; white-space: pre-wrap; word-break: break-word; display: inline; }
+    /* 历史折叠：本场、全部各自控制 */
+    .card .records-more { display: none; }
 
-  /* ========= 历史信息组 ========= */
-  .group {
-    font-family: "Microsoft YaHei", sans-serif;
-    background: rgba(249, 249, 249, 0.8);
-    border-left: 3px solid var(--brand);
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-top: 18px;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  }
-  .item { margin-left:15px; white-space:pre-wrap; line-height:1.7; }
-  .center-muted { text-align:center; color:#999; }
-  .err { text-align:center; color:#c0392b; margin-top:8px; }
-  .nick { color:#0f61a8; font-weight:800; }
+    .history-block.is-open .records-more { display:block; }
+    .history-block.is-open .fold-tip { display:none; }
 
-  .hl-red{ color:var(--hl-red); font-weight:800; }
-  /* 修正：hl-green 应使用绿色变量 */
-  .hl-green{ color:var(--hl-green); font-weight:800; }
-  .subtle { color:var(--muted); font-size:12px; margin-top:4px; }
-  /* 出价次数 >3 时卡片底色变透明绿 */
-  .card-highcount {
-   background: rgba(0, 180, 0, 0.08); /* 柔和透明绿 */
-   border-color: rgba(0, 150, 0, 0.3);
-   box-shadow: 0 0 8px rgba(0, 150, 0, 0.15);
-   }
+    .fold-tip {
+      color: #999;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 4px;
+    }
 
-  /* ========= 历史记录折叠（悬浮展开） ========= */
-  .records-visible{}
-  .records-more{ display:none; }
-  .card:hover .records-more{ display:block; }
+    .toggle-more {
+      margin-top: 6px;
+      padding: 4px 10px;
+      font-size: 13px;
+      color: var(--brand);
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
 
-  .fold-tip{
-    color:var(--muted);
-    font-size:12px;
-    text-align:center;
-    margin-top:6px;
-  }
-  .card:hover .fold-tip{ display:none; }
-</style>
+      display: inline-block;   /* 与小卡片一致 */
+      width: fit-content;       /* 关键：跟卡片一样宽度由内容决定 */
+      white-space: nowrap;      /* 不换行 */
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+      /* 对齐方式：左对齐，与卡片自然排版一致 */
+    }
+
+    .toggle-more:hover {
+      background: rgba(255,255,255,1);
+    }
+
+
+    /* 拍主信息里的“出价时间”相对时间小字 */
+    .bid-time .sub{
+      font-size:13px;
+      opacity:.65;
+      font-weight:700;
+      margin-left:4px;
+    }
+
+    /* 窄屏下改为单列 */
+    @media (max-width: 860px){
+      .card-top{
+        grid-template-columns: 1fr;
+      }
+      .card-bottom{
+        flex-direction:column;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="layout">
-    <div class="left">
-
-      <!-- 顶部信息小框（启用 sticky） -->
-      <div class="meta-wrap">
-        <div class="meta-box" id="fixedMeta">
-          <!-- <div><span class="label">鸽子ID：</span><span class="value" id="m_id">-</span></div> -->
-          <div><span class="label">成绩：</span><span class="value" id="m_name">-</span></div>
-          <div><span class="label">环号：</span><span class="value" id="m_ring">-</span></div>
-          <div><span class="label">鸽主：</span><span class="value" id="m_matcher">-</span></div>
-          <hr>
-          <div class="value-block" id="m_content"></div>
+  <div class="page">
+    <div class="layout">
+      <div class="left">
+        <!-- 顶部当前鸽子信息 -->
+        <div class="meta-wrap">
+          <div class="meta-box" id="fixedMeta" aria-live="polite">
+            <div><span class="label">成绩：</span><span class="value" id="m_name">-</span></div>
+            <div><span class="label">环号：</span><span class="value" id="m_ring">-</span></div>
+            <div><span class="label">鸽主：</span><span class="value" id="m_matcher">-</span></div>
+            <hr>
+            <div class="value-block" id="m_content"></div>
+          </div>
         </div>
-      </div>
 
-      <!-- 列表容器与错误信息 -->
-      <div id="list"></div>
-      <div id="error" class="err"></div>
+        <!-- 出价人卡片列表 -->
+        <div id="list" role="list"></div>
+
+        <!-- 错误提示 -->
+        <div id="error" class="err" role="status" aria-live="polite"></div>
+      </div>
     </div>
   </div>
 
 <script>
-/**
- * 整体自执行作用域，避免全局污染
- */
 (() => {
-  /* ==============================
-   * 1) 常量 & DOM 引用
-   * ============================== */
-  const SSE_URL = new URL('/sse/pigeon', window.location.origin); // SSE 拉流地址
+  "use strict";
 
+  // 相似度阈值：用于标记鸽主 / 疑似鸽主
+  const SIM_THRESHOLD_SIMILAR = 0.50;
+  const SIM_THRESHOLD_HIGH    = 0.80;
+
+  // 名称高亮时忽略的词/字符
+  const HIGHLIGHT_IGNORE_TERMS = ["鸽舍", "鸽苑"];
+  const HIGHLIGHT_IGNORE_CHARS = "-—_·• ";
+  const HIGHLIGHT_MIN_EFFECTIVE_LEN = 3;
+
+  // SSE 地址
+  const SSE_URL = new URL('/sse/pigeon', window.location.origin);
+
+  // DOM 引用
   const list = document.getElementById("list");
   const errorBox = document.getElementById("error");
-  // const mId = document.getElementById("m_id");
   const mName = document.getElementById("m_name");
   const mRing = document.getElementById("m_ring");
   const mMatcher = document.getElementById("m_matcher");
   const mContent = document.getElementById("m_content");
 
-  /* ==============================
-   * 2) 工具函数
-   * ============================== */
-
-  /** 显示错误文本 */
-  const showError = msg => errorBox.textContent = msg || "";
-
-  /** 安全显示：0 保留，null/undefined 显示 "-" */
+  const showError = msg => { errorBox.textContent = msg || ""; };
   const safe = v => (v===0 ? 0 : (v ?? "-"));
 
-  /** 按 keyFn 进行分组 */
+  // 数组按 key 分组
   const groupBy = (arr, keyFn) => {
     const m=new Map();
     (arr||[]).forEach(r=>{
@@ -222,38 +405,18 @@
     return m;
   };
 
-  /** 兜底显示对象/数字/字符串 */
+  // 展示字段为字符串
   const displayQuote = v => (v==null ? "-" : (typeof v === "object"
     ? (()=>{ try{return JSON.stringify(v);}catch{return "-";} })()
     : String(v)));
 
-  /** 把字符串安全拆为字符数组（支持 emoji） */
-  const toChars = s => Array.from((s ?? "").toString());
-
-  /** 金额格式化（千分位） */
+  // 金额格式化
   function fmtMoney(v){
     const n = Number(v);
     return Number.isFinite(n) ? n.toLocaleString("zh-CN") : displayQuote(v);
   }
 
-  /**
-   * 高亮给定字符集合中的字符
-   * @param {string} str - 原始字符串
-   * @param {Set<string>} set - 需要高亮的字符集合
-   * @param {string} cls - 高亮使用的 CSS 类
-   */
-  function highlightWithSet(str, set, cls){
-    const out = toChars(str).map(ch => set.has(ch) ? `<span class="${cls}">${ch}</span>` : ch).join("");
-    return out || "-";
-  }
-
-  /** 从 payload 中拿 items（兼容数组或 {items:[]}） */
-  function pickItems(payload) { return Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : []; }
-
-  /** 当前项 ID（若有） */
-  function pickCurrent(payload) { return payload?.current_id ?? null; }
-
-  /** 文本做 XSS 转义 */
+  // HTML 转义
   function escapeHtml(s){
     return String(s)
       .replace(/&/g,"&amp;")
@@ -263,104 +426,181 @@
       .replace(/'/g,"&#39;");
   }
 
-  /**
-   * ========== 统一“出价时间”字段定义 ==========
-   * 后台可能叫 create_time / createTime / ctime / created_at / createdAt 等，
-   * 这里统一规范为“毫秒级”时间戳返回，便于后续格式化。
-   * 若取不到或无效，返回 null。
-   */
+  // 名称公共字符高亮
+  function highlightCommonRuns(str, other, minLen = 2, cls = 'hl-red') {
+    const a = Array.from(String(str ?? ''));
+    const b = Array.from(String(other ?? ''));
+    const n = a.length, m = b.length;
+
+    const dp = Array(n + 1).fill(0).map(() => Array(m + 1).fill(0));
+    const mark = Array(n).fill(false);
+
+    // 动态规划找连续公共子串
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        if (a[i - 1] === b[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+          if (dp[i][j] >= minLen) {
+            for (let k = 0; k < dp[i][j]; k++) {
+              mark[i - 1 - k] = true;
+            }
+          }
+        } else {
+          dp[i][j] = 0;
+        }
+      }
+    }
+
+    // 根据有效长度（去掉鸽舍/鸽苑等）决定是否高亮
+    const spans = [];
+    let i = 0;
+    while (i < n) {
+      if (!mark[i]) { i++; continue; }
+      let j = i;
+      while (j < n && mark[j]) j++;
+
+      const seg = a.slice(i, j).join('');
+
+      let effective = seg;
+      for (const term of HIGHLIGHT_IGNORE_TERMS) {
+        if (!term) continue;
+        effective = effective.split(term).join('');
+      }
+      effective = effective
+        .split('')
+        .filter(ch => !HIGHLIGHT_IGNORE_CHARS.includes(ch))
+        .join('');
+
+      if (effective.length >= HIGHLIGHT_MIN_EFFECTIVE_LEN) {
+        spans.push([i, j]);
+      }
+      i = j;
+    }
+
+    // 重建带 span 的字符串
+    let out = '';
+    let pos = 0;
+    for (const [s, e] of spans) {
+      while (pos < s) {
+        out += escapeHtml(a[pos]);
+        pos++;
+      }
+      const seg = a.slice(s, e).join('');
+      out += `<span class="${cls}">${escapeHtml(seg)}</span>`;
+      pos = e;
+    }
+    while (pos < n) {
+      out += escapeHtml(a[pos]);
+      pos++;
+    }
+
+    return out || '-';
+  }
+
+  // 宽松数字解析
+  function toNumberLoose(v){
+    if (v == null) return NaN;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+    const m = String(v).match(/-?\d+(\.\d+)?/);
+    return m ? Number(m[0]) : NaN;
+  }
+
+  // 相似度归一化
+  function normalizeScore(s){
+    const n = toNumberLoose(s);
+    if (!Number.isFinite(n)) return NaN;
+    if (n > 1) return n / 100;
+    if (n < 0) return 0;
+    return n;
+  }
+
+  function pickItems(payload) {
+    return Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+  }
+
+  function pickCurrent(payload) {
+    if (payload && typeof payload.current === 'object' && payload.current) return payload.current;
+    if (payload && payload.current_id && typeof payload.current_id === 'object') return payload.current_id;
+    return null;
+  }
+
+  // 提取时间戳（毫秒）
   function pickCreateTimeMs(item){
-    // 兼容多种命名
     const raw = item?.create_time ?? item?.createTime ?? item?.ctime ?? item?.created_at ?? item?.createdAt;
     if (raw == null) return null;
-
     const n = Number(raw);
     if (!Number.isFinite(n)) return null;
-
-    // 秒或毫秒判断
     return n < 1e12 ? n * 1000 : n;
   }
 
-  /**
-   * 格式化时间戳（自动兼容秒/毫秒）
-   * @param {number} ts - 时间戳（秒或毫秒均可）
-   * @returns "YYYY-MM-DD hh:mm:ss"
-   */
-  function formatTime(ts) {
-    const ms = ts < 1e12 ? ts * 1000 : ts; // 兼容：若传入秒，转毫秒
-    const date = new Date(ms);
-    const Y = date.getFullYear();
-    const M = String(date.getMonth() + 1).padStart(2, '0');
-    const D = String(date.getDate()).padStart(2, '0');
-    const h = String(date.getHours()).padStart(2, '0');
-    const m = String(date.getMinutes()).padStart(2, '0');
-    const s = String(date.getSeconds()).padStart(2, '0');
-    return `${Y}-${M}-${D} ${h}:${m}:${s}`;
+  // 时间格式化
+  const CN_FMT = new Intl.DateTimeFormat('zh-CN', {
+    year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',second:'2-digit',
+    hour12:false
+  });
+  function formatTime(ts){
+    const ms = ts < 1e12 ? ts * 1000 : ts;
+    return CN_FMT.format(new Date(ms)).replace(/\//g,'-');
   }
-      /**
-     * 将毫秒级时间戳格式化为相对时间（中文）
-     * @param {number} msTs - 毫秒时间戳
-     * @returns {string}
-     */
-    function formatRelative(msTs){
-      const now = Date.now();
-      let diff = Math.max(0, Math.floor((now - msTs) / 1000)); // 秒
 
-      if (diff < 5) return '刚刚';
-      if (diff < 60) return `${diff} 秒前`;
+  // 相对时间文本
+  function formatRelative(msTs){
+    const now = Date.now();
+    let diff = Math.max(0, Math.floor((now - msTs) / 1000));
+    if (diff < 5) return '刚刚';
+    if (diff < 60) return `${diff} 秒前`;
+    const mins = Math.floor(diff / 60);
+    if (mins < 60) return `${mins} 分钟前`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} 小时前`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} 天前`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 5) return `${weeks} 周前`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} 个月前`;
+    const years = Math.floor(days / 365);
+    return `${years} 年前`;
+  }
 
-      const mins = Math.floor(diff / 60);
-      if (mins < 60) return `${mins} 分钟前`;
+  // 相对时间定时刷新（针对拍主信息里的出价时间）
+  let rtTimer = null;
+  function updateAllRelativeTimes(){
+    document.querySelectorAll('.bid-time[data-ts]').forEach(el => {
+      const ts = Number(el.getAttribute('data-ts'));
+      if (!Number.isFinite(ts)) return;
+      let sub = el.querySelector('.sub');
+      if (!sub) {
+        sub = document.createElement('span');
+        sub.className = 'sub';
+        el.appendChild(sub);
+      }
+      sub.textContent = formatRelative(ts);
+      el.setAttribute('aria-label', `出价时间 ${formatTime(ts)}，${sub.textContent}`);
+    });
+  }
+  function startRelativeTimer(){
+    stopRelativeTimer();
+    rtTimer = setInterval(updateAllRelativeTimes, 60_000);
+  }
+  function stopRelativeTimer(){
+    if(rtTimer){ clearInterval(rtTimer); rtTimer=null; }
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) stopRelativeTimer(); else { updateAllRelativeTimes(); startRelativeTimer(); }
+  });
 
-      const hours = Math.floor(mins / 60);
-      if (hours < 24) return `${hours} 小时前`;
-
-      const days = Math.floor(hours / 24);
-      if (days < 7) return `${days} 天前`;
-
-      const weeks = Math.floor(days / 7);
-      if (weeks < 5) return `${weeks} 周前`;
-
-      const months = Math.floor(days / 30);
-      if (months < 12) return `${months} 个月前`;
-
-      const years = Math.floor(days / 365);
-      return `${years} 年前`;
-    }
-
-    /**
-     * 扫描页面所有出价时间徽标，更新其相对时间文本
-     * 要求：徽标容器 .time-right 上有 data-ts（毫秒时间戳）
-     */
-    function updateAllRelativeTimes(){
-      document.querySelectorAll('.time-right[data-ts]').forEach(el => {
-        const ts = Number(el.getAttribute('data-ts'));
-        if (!Number.isFinite(ts)) return;
-        // 找到相对时间行 .sub（若不存在则创建）
-        let sub = el.querySelector('.sub');
-        if (!sub) {
-          sub = document.createElement('div');
-          sub.className = 'sub';
-          el.appendChild(sub);
-        }
-        sub.textContent = formatRelative(ts);
-      });
-    }
-
-
-  /* ==============================
-   * 3) 顶部 meta 区域渲染
-   * ============================== */
+  // 顶部当前鸽子信息渲染
   function renderCurrentMeta(current) {
-    // mId.textContent = safe(current?.id);
-    mName.textContent = current?.name;
+    mName.textContent = current?.name ?? "-";
     mRing.textContent = safe(current?.footring ?? current?.foot_ring ?? current?.ring);
     const matcherName = current?.matchername ?? current?.matcher_name ?? current?.matcher;
     mMatcher.textContent = safe(matcherName);
 
     const contentVal = current?.content ?? current?.xlsx_content ?? current?.desc ?? current?.description;
 
-    // 分号（；或 ;）换行 + XSS 安全转义
     if (contentVal == null) {
       mContent.textContent = "-";
     } else if (typeof contentVal === "object") {
@@ -371,192 +611,397 @@
     }
   }
 
-  /* ==============================
-   * 4) 列表渲染核心
-   * ============================== */
+  // 构建历史记录面板（本场 / 全部）
+  // 如果 rows 为空则返回 null（外层不显示这块）
+  function buildHistoryPane(rows, titleText, currentMatcherName, card) {
+    rows = rows || [];
+    if (!rows.length) return null;
+
+    const container = document.createElement('div');
+    container.className = 'history-block';
+
+    const header = document.createElement('div');
+    header.className = 'history-header';
+    header.textContent = titleText;
+    container.appendChild(header);
+
+    const groups = groupBy(rows, r => (r?.matcher_name ?? "-").toString().trim());
+    const visibleWrap = document.createElement('div');
+    visibleWrap.className = 'records-visible';
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'records-more';
+
+    const MAX_GROUPS = 1;
+    let idxGroup = 0;
+
+    groups.forEach((arr, matcherNameRaw) => {
+      const matcherName = matcherNameRaw || "-";
+
+      const redMatcher = highlightCommonRuns(
+        matcherName,
+        currentMatcherName,
+        2,
+        'hl-red'
+      );
+
+      const quotes = arr
+        .map(x => toNumberLoose(x?.quote) || 0)
+        .filter(n => Number.isFinite(n) && n > 0)
+        .sort((a, b) => b - a);
+
+      const aggTotalFromServer = toNumberLoose(arr?.[0]?._agg_total);
+      const totalPrice = Number.isFinite(aggTotalFromServer) && aggTotalFromServer > 0
+        ? aggTotalFromServer
+        : quotes.reduce((s, n) => s + n, 0);
+
+      const highest = quotes[0] ?? 0;
+      const second  = quotes[1] ?? 0;
+      const aggCount = toNumberLoose(arr[0]?._agg_count ?? arr.length) || arr.length;
+
+      // 组汇总卡片
+      const cardBox = document.createElement('div');
+      cardBox.className = 'info-card history-card group';
+
+      cardBox.innerHTML = `
+        <div class="stat-item full info-title">鸽主：${redMatcher}</div>
+        <div class="stat-item">
+          <span class="label">成交次数：</span>
+          <span class="value">${displayQuote(aggCount)}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">总价：</span>
+          <span class="value">¥${displayQuote(totalPrice)}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">最高：</span>
+          <span class="value">¥${displayQuote(highest)}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">次高：</span>
+          <span class="value">¥${displayQuote(second)}</span>
+        </div>
+      `;
+
+      // 每只鸽子的明细
+      arr.forEach(row => {
+        const subName = row.pigeon_name ?? row.pigeonName ?? row.name ?? "-";
+        const subRing = row.foot_ring ?? row.footRing ?? "-";
+        const subQuote = row.quote ?? "-";
+
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'history-row';
+        rowDiv.textContent =
+          `鸽名：${subName}  环号：${subRing}  价格：${displayQuote(subQuote)}`;
+
+        cardBox.appendChild(rowDiv);
+      });
+
+      // 外层小卡片增强分组感
+      const wrapper = document.createElement('div');
+      wrapper.className = 'history-item-card';
+      wrapper.appendChild(cardBox);
+
+      const bucket = (idxGroup < MAX_GROUPS) ? visibleWrap : moreWrap;
+      bucket.appendChild(wrapper);
+      idxGroup++;
+    });
+
+    container.appendChild(visibleWrap);
+    if (moreWrap.childElementCount > 0) {
+      container.appendChild(moreWrap);
+
+      const hiddenCount = groups.size - MAX_GROUPS;
+
+      const ctl = document.createElement('button');
+      ctl.className = 'toggle-more';
+      ctl.type = 'button';
+      ctl.textContent = `展开更多历史（${hiddenCount} 组，已折叠）`;
+      ctl.addEventListener('click', () => {
+        const opened = container.classList.toggle('is-open');
+        if (opened) {
+          ctl.textContent = `收起历史`;
+        } else {
+          ctl.textContent = `展开更多历史（${hiddenCount} 组，已折叠）`;
+        }
+      });
+      container.appendChild(ctl);
+
+      // const tip = document.createElement('div');
+      // tip.className = 'fold-tip';
+      // tip.textContent = `已折叠 ${hiddenCount} 组历史记录，可点击按钮展开`;
+      // container.appendChild(tip);
+    }
+
+    return container;
+  }
+
+  // 主渲染函数
   function render(payload) {
     const current = pickCurrent(payload) || {};
     const currentMatcherName = (current?.matchername ?? current?.matcher_name ?? "").toString();
-    const currentSet = new Set(toChars(currentMatcherName));
 
     renderCurrentMeta(current);
 
     list.innerHTML = "";
+    const frag = document.createDocumentFragment();
     const items = pickItems(payload);
+
     if (!items.length) {
-      list.innerHTML = `<div class="center-muted">暂无数据</div>`;
+      const none = document.createElement('div');
+      none.className = 'center-muted';
+      none.textContent = '暂无数据';
+      frag.appendChild(none);
+      list.appendChild(frag);
       return;
     }
 
+    // 每个 item 是一个出价人聚合
     items.forEach(item => {
       const userNickname = (item.user_nickname ?? "").toString();
       const userCode = item.user_code ?? "";
-      const count = item.count;
+      const countNum = toNumberLoose(item.count);
+      const countDisplay = Number.isFinite(countNum) ? countNum : safe(item.count);
 
-      // —— 历史记录数组兜底提取 —— //
-      const results = item.results || {};
-      let historyRows = Array.isArray(results[userCode]) ? results[userCode] : null;
+      const outerSimVal = normalizeScore(item?._match_score ?? item?.match_score ?? item?.similarity);
+
+      let innerBest = NaN;
+      for (const arr of Object.values(item.results || {})) {
+        if (!Array.isArray(arr)) continue;
+        for (const row of arr) {
+          const s = normalizeScore(row?._match_score ?? row?.match_score ?? row?.similarity);
+          if (Number.isFinite(s) && (!Number.isFinite(innerBest) || s > innerBest)) {
+            innerBest = s;
+          }
+        }
+      }
+
+      const simMax = Math.max(
+        Number.isFinite(outerSimVal) ? outerSimVal : -Infinity,
+        Number.isFinite(innerBest)   ? innerBest   : -Infinity
+      );
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.setAttribute('role','listitem');
+
+      const cardTop = document.createElement('div');
+      cardTop.className = 'card-top';
+      const topLeft = document.createElement('div');
+      topLeft.className = 'card-top-left';
+      const topMid = document.createElement('div');
+      topMid.className = 'card-top-mid';
+      const topRight = document.createElement('div');
+      topRight.className = 'card-top-right';
+
+      // 状态判定
+      const intentHigh = Number.isFinite(countNum) && countNum > 2;
+      const flagRedHigh = Number.isFinite(simMax) && simMax >= SIM_THRESHOLD_HIGH;
+      const flagRedMid  = !flagRedHigh && Number.isFinite(simMax) && simMax >= SIM_THRESHOLD_SIMILAR;
+
+      if (flagRedHigh) {
+        card.classList.add("card-red");
+      }
+      else if (flagRedMid) {
+        card.classList.add("card-orange");
+      }
+      else if (intentHigh) {
+        const depth = Math.min(countNum, 10);
+        const hue = 120 - (Math.min(depth, 10) - 3) * 6;
+        const light = 95 - Math.min((depth - 3) * 5, 25);
+        const alpha = 0.40 + Math.min((depth - 3) * 0.05, 0.4);
+
+        const bgColor = `hsla(${hue}, 70%, ${light}%, ${alpha})`;
+        const borderColor = `hsla(${hue}, 70%, ${light - 20}%, ${alpha * 2})`;
+        const shadowColor = `hsla(${hue}, 70%, ${light - 25}%, ${alpha * 1.5})`;
+
+        card.style.background = bgColor;
+        card.style.borderColor = borderColor;
+        card.style.boxShadow = `0 0 10px ${shadowColor}`;
+      }
+
+      // 出价人名称高亮
+      const greenNick = highlightCommonRuns(userNickname, currentMatcherName, 2, 'hl-red');
+
+      // 计算出价时间（在拍主信息里用）
+      const createTimeMs = pickCreateTimeMs(item);
+      let timeRowHtml = '';
+      if (createTimeMs) {
+        timeRowHtml = `
+          <div class="stat-item">
+            <span class="label">出价时间：</span>
+            <span class="value bid-time" data-ts="${createTimeMs}">
+              ${formatTime(createTimeMs)} <span class="sub">${formatRelative(createTimeMs)}</span>
+            </span>
+          </div>
+        `;
+      }
+
+      // 状态徽章 html
+      let badgeHTML = '';
+      if (intentHigh) {
+        badgeHTML += '<span class="badge badge-green">（购买欲望高）</span>';
+      }
+      if (flagRedHigh) {
+        badgeHTML += '<span class="badge badge-red">（鸽主）</span>';
+      } else if (flagRedMid) {
+        badgeHTML += '<span class="badge badge-orange">（疑似鸽主）</span>';
+      }
+
+      // 左侧拍主信息卡片：两行两列 + 出价时间
+      const infoBidder = document.createElement('div');
+      infoBidder.className = 'info-card';
+      infoBidder.innerHTML = `
+        <div class="stat-item full info-title">拍主信息</div>
+
+        <div class="stat-item">
+          <span class="label">出价人：</span>
+          <span class="value">${greenNick}</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">出价ID：</span>
+          <span class="value">
+            ${escapeHtml(String(safe(userCode)).slice(-4))}${badgeHTML}
+          </span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">当前价：</span>
+          <span class="value">¥${fmtMoney(item.quote)}</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">出价次数：</span>
+          <span class="value">${escapeHtml(String(countDisplay))}</span>
+        </div>
+
+        ${timeRowHtml}
+      `;
+      topLeft.appendChild(infoBidder);
+
+      // 中间：本场统计
+      const bidCntRaw   = item.auction_bid_count;
+      const totalPRaw   = item.auction_total_price;
+      const highestRaw  = item.auction_highest_price;
+      const secondRaw   = item.auction_second_highest_price;
+      const isSet = v => v !== undefined && v !== null;
+
+      const statsCurrent = document.createElement('div');
+      statsCurrent.className = 'stats-right';
+      statsCurrent.innerHTML = `
+        <div class="stat-item full info-title">本场统计</div>
+        <div class="stat-item">
+          <span class="label">本场拍的次数：</span>
+          <span class="value">${bidCntRaw ? String(bidCntRaw) : '-'}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">本场拍得总价：</span>
+          <span class="value">¥${totalPRaw ? fmtMoney(totalPRaw) : '-'}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">最高价：</span>
+          <span class="value">¥${isSet(highestRaw) ? fmtMoney(highestRaw) : '-'}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">次高价：</span>
+          <span class="value">¥${isSet(secondRaw) ? fmtMoney(secondRaw) : '-'}</span>
+        </div>
+      `;
+      topMid.appendChild(statsCurrent);
+
+      // 右侧：全部场统计
+      const bidCntAll   = item.auction_bid_count_all;
+      const totalPAll   = item.auction_total_price_all;
+      const highestAll  = item.auction_highest_price_all;
+      const secondAll   = item.auction_second_highest_price_all;
+
+      const statsAll = document.createElement('div');
+      statsAll.className = 'stats-right';
+      statsAll.innerHTML = `
+        <div class="stat-item full info-title">全部场统计</div>
+        <div class="stat-item">
+          <span class="label">全部场次数：</span>
+          <span class="value">${bidCntAll ? String(bidCntAll) : '-'}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">全部场总价：</span>
+          <span class="value">¥${totalPAll ? fmtMoney(totalPAll) : '-'}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">全部场最高：</span>
+          <span class="value">¥${isSet(highestAll) ? fmtMoney(highestAll) : '-'}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">全部场次高：</span>
+          <span class="value">¥${isSet(secondAll) ? fmtMoney(secondAll) : '-'}</span>
+        </div>
+      `;
+      topRight.appendChild(statsAll);
+
+      cardTop.append(topLeft, topMid, topRight);
+
+      // 下半部分：本场 / 全部历史记录（无内容则完全不显示这块）
+      const cardBottom = document.createElement('div');
+      cardBottom.className = 'card-bottom';
+
+      let historyRows = Array.isArray((item.results || {})[userCode]) ? item.results[userCode] : null;
       if (!historyRows || !historyRows.length) {
-        for (const v of Object.values(results)) {
+        for (const v of Object.values(item.results || {})) {
           if (Array.isArray(v) && v.length) { historyRows = v; break; }
         }
       }
       historyRows = historyRows || [];
 
-      // —— 构建卡片 —— //
-      const card = document.createElement("div");
-      card.className = "card";
+      const curAuctionId = item.auction_id ?? current.auction_id ?? null;
 
-      // ====== 出价次数 or 相似度高亮判断 ======
-      let highCount = Number(item.count) > 3;
-      let highSim = false;
+      const rowsCurrent = curAuctionId == null
+        ? []
+        : historyRows.filter(r => (r?.auction_id ?? null) === curAuctionId);
 
-      // 检查历史记录相似度（取最高一组的 _match_score）
-      if (item.results) {
-        for (const v of Object.values(item.results)) {
-          if (Array.isArray(v) && v.length) {
-            const sim = Number(v[0]?._match_score ?? 0);
-            if (sim > 0.8) { // 相似度 > 0.8（80%）
-              highSim = true;
-              break;
-            }
-          }
-        }
+      const rowsAll = historyRows;
+
+      // 本场有记录才生成面板
+      if (rowsCurrent.length > 0) {
+        const paneCurrent = buildHistoryPane(rowsCurrent, '本场拍得记录', currentMatcherName, card);
+        if (paneCurrent) cardBottom.appendChild(paneCurrent);
       }
 
-      // 若任一条件成立，添加绿色底样式
-      if (highCount || highSim) {
-        card.classList.add("card-highcount");
+      // 全部有记录才生成面板
+      if (rowsAll.length > 0) {
+        const paneAll = buildHistoryPane(rowsAll, '全部拍得记录', currentMatcherName, card);
+        if (paneAll) cardBottom.appendChild(paneAll);
       }
 
-      // 标题：出价人（与当前匹配人名字符交集做高亮）
-      const title = document.createElement("div");
-      title.className = "title";
-      const greenNick = highlightWithSet(userNickname, currentSet, 'hl-green');
-      title.innerHTML = `出价人：<span class="nick">${greenNick}</span>`;
-      card.appendChild(title);
-
-      // 当前出价金额
-      const base2 = document.createElement("div");
-      base2.className = "line line-strong";
-      base2.textContent = `当前出价：¥${fmtMoney(item.quote)} `;
-      card.appendChild(base2);
-
-      // 出价 ID 与出价次数
-      const base = document.createElement("div");
-      base.className = "line line-strong";
-      base.innerHTML = `
-        <span>出价id：${safe(userCode)}</span>
-        <span class="right">出价次数：${safe(count)}</span>
-      `;
-      card.appendChild(base);
-
-      // 右上角徽标：出价时间（加深）+ 相对时间
-    const createTimeMs = pickCreateTimeMs(item);
-    if (createTimeMs) {
-      const timeRight = document.createElement("div");
-      timeRight.className = "time-right";
-      timeRight.setAttribute('data-ts', String(createTimeMs)); // 用于后续相对时间刷新
-
-      // 第一行：绝对时间
-      const row = document.createElement('div');
-      row.innerHTML = `<span class="label">出价时间：</span><span class="value">${formatTime(createTimeMs)}</span>`;
-      timeRight.appendChild(row);
-
-      // 第二行：相对时间（先渲染一次，之后由定时器刷新）
-      const sub = document.createElement('div');
-      sub.className = 'sub';
-      sub.textContent = formatRelative(createTimeMs);
-      timeRight.appendChild(sub);
-
-      card.appendChild(timeRight);
-      updateAllRelativeTimes();// 渲染完成后，立即刷新一次相对时间显示
-    }
-
-
-      // 历史拍得记录（按 matcher_name 分组）
-      const groups = groupBy(historyRows, r => (r?.matcher_name ?? "-").toString().trim());
-      if (groups.size === 0) {
-        const none = document.createElement("div");
-        none.className = "center-muted";
-        none.textContent = "历史拍得记录：暂无";
-        card.appendChild(none);
+      // 如果本场和全部都没有，就不渲染 card-bottom
+      if (cardBottom.childElementCount > 0) {
+        card.appendChild(cardTop);
+        card.appendChild(cardBottom);
       } else {
-        const MAX_GROUPS = 3; // 首屏最多展示 3 组，更多悬浮展开
-        const visibleWrap = document.createElement('div');
-        visibleWrap.className = 'records-visible';
-        const moreWrap = document.createElement('div');
-        moreWrap.className = 'records-more';
-
-        let idxGroup = 0;
-        groups.forEach((arr, matcherNameRaw) => {
-          const matcherName = matcherNameRaw || "-";
-          const group = document.createElement("div");
-          group.className = "group";
-
-          // 聚合信息：成交次数 & 相似度
-          const aggCount = Number(arr[0]?._agg_count ?? arr.length) || arr.length;
-          let sim = Number(arr[0]?._match_score ?? 0);
-          sim = (sim * 100).toFixed(2);
-
-          const redMatcher = highlightWithSet(matcherName, currentSet, 'hl-red');
-          group.innerHTML = `历史拍得记录：${redMatcher}（相似度：${sim}%） | 成交次数：${aggCount}`;
-
-          // 第一条
-          const first = arr[0];
-          const line = document.createElement("div");
-          line.className = "item";
-          const name = safe(first?.name);
-          const ring = safe(first?.foot_ring ?? first?.footring);
-          const price = displayQuote(first?.quote);
-          line.textContent = `└─ 鸽子：${name} 环号：${ring}  价格：${price}`;
-          group.appendChild(line);
-
-          // 其余条目
-          for (let i = 1; i < arr.length; i++) {
-            const r = arr[i];
-            const extra = document.createElement("div");
-            extra.className = "item";
-            const n2 = safe(r?.name);
-            const r2 = safe(r?.foot_ring ?? r?.footring);
-            const p2 = displayQuote(r?.quote);
-            extra.textContent = `└─ 鸽子：${n2} 环号：${r2}  价格：${p2}`;
-            group.appendChild(extra);
-          }
-
-          // 分发到“可见区/更多区”
-          const bucket = (idxGroup < MAX_GROUPS) ? visibleWrap : moreWrap;
-          bucket.appendChild(group);
-          idxGroup++;
-        });
-
-        card.appendChild(visibleWrap);
-        if (moreWrap.childElementCount > 0){
-          card.appendChild(moreWrap);
-          const tip = document.createElement('div');
-          tip.className = 'fold-tip';
-          tip.textContent = `已折叠 ${groups.size - MAX_GROUPS} 条历史记录，鼠标移上展开 ↓`;
-          card.appendChild(tip);
-        }
+        card.appendChild(cardTop);
       }
 
-      // 把卡片挂到列表
-      list.appendChild(card);
+      frag.appendChild(card);
     });
+
+    list.appendChild(frag);
+    updateAllRelativeTimes();
   }
 
-  /* ==============================
-   * 5) SSE 连接与消息处理
-   * ============================== */
+  // SSE 连接
+  let es = null;
   function connect(){
-    const es = new EventSource(SSE_URL);
+    es = new EventSource(SSE_URL);
 
-    es.onopen = () => { showError(""); };
-    setInterval(updateAllRelativeTimes, 60 * 1000);
-    // 浏览器底层错误（网络/断开等），此处不强行关闭，交给后端与浏览器自动重连策略
-    es.onerror = () => {};
+    es.onopen = () => {
+      showError("");
+      startRelativeTimer();
+    };
 
-    // 服务器发送的「bids」事件：主数据源
+    es.onerror = () => {
+      // 连接错误由 error 事件单独提示
+    };
+
+    // 出价数据事件
     es.addEventListener("bids", (ev) => {
       try {
         const data = JSON.parse(ev.data);
@@ -567,28 +1012,24 @@
       }
     });
 
-    // 服务器发送的错误事件（业务错误）
+    // 服务端错误事件
     es.addEventListener("error", (ev) => {
       try {
         const err = JSON.parse(ev.data);
-        showError('服务端错误：' + (err?.message || ev.data));
+        showError('服务端错误：' + (err?.message || err.data));
       } catch {
         showError('服务端错误：' + (ev.data || 'unknown'));
       }
     });
-
-    // 默认 message 回退（有些后端直接用 onmessage）
-    es.onmessage = (ev) => {
-      if (!ev?.data) return;
-      try {
-        const data = JSON.parse(ev.data);
-        render(data);
-        showError("");
-      } catch {}
-    };
   }
 
-  // 启动连接
+  // 页面关闭时清理连接和定时器
+  window.addEventListener('beforeunload', ()=>{
+    try{ es?.close(); }catch{}
+    stopRelativeTimer();
+  });
+
+  // 启动
   connect();
 })();
 </script>

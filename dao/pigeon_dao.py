@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import asdict, is_dataclass
+from pprint import pprint
 from typing import Dict, Any, List, Optional, Tuple, Sequence
 from datetime import datetime
 
@@ -326,59 +327,162 @@ class PigeonDao(BaseDB):
             result[col] = val if col not in ("remark", "ws_remark") else (val or None)
         return result
 
-    def query_user_deal_records(
+    def query_bid_statistics_and_deals(
             self,
             user_codes: Sequence[str],
+            auction_id: int,
             *,
-            status_whitelist: Tuple[str, ...] = ("已完成", "已结拍"),
+            status_whitelist: Tuple[str, ...] = ("已完成", "已结拍"),  # 默认过滤“已完成类”状态
             chunk_size: int = 100,
-            ) -> Dict[str, List[Dict[str, Any]]]:
+            ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
         """
-        基于 bid_user_code 批量查询历史成交记录（结构化字段，不拼接）。
-        返回字段:
-            bid_user_code, matcher_name, name(鸽子名), foot_ring(环号), quote(成交价)
+        查询指定用户（bid_user_code）在所有拍卖场的“已完成”记录，
+        并在这些完成记录中，统计：
+          1. 当前拍卖场（auction_id）的成交数据；
+          2. 所有拍卖场的整体成交数据。
 
-        返回示例：
-            {
-              "GUGU007SZV679": [
-                 {"matcher_name": "李四", "name": "白羽神速", "foot_ring": "SG2510200F1XK888", "quote": 2000},
-                 {"matcher_name": "李四", "name": "黑风王", "foot_ring": "SG2510200F1XK666", "quote": 1800},
-              ],
-              "GUGU007P7L653": [
-                 {"matcher_name": "一叶寒秋", "name": "极速灰", "foot_ring": "SG2510200F1XR9988", "quote": 1500},
-              ]
-            }
+        -----
+        【返回值】
+        :return: Tuple (statistics, completed_deals)
+            - statistics: {
+                  user_code: {
+                      # 当前拍卖场
+                      "deal_count": int,
+                      "total_price": float,
+                      "highest_price": float,
+                      "second_highest_price": float,
+
+                      # 所有拍卖场
+                      "deal_count_all": int,
+                      "total_price_all": float,
+                      "highest_price_all": float,
+                      "second_highest_price_all": float,
+                  }
+              }
+            - completed_deals: {user_code: [ {matcher_name, name, foot_ring, quote, auction_id, status_name}, ... ]}
         """
+
+        # --- 参数预处理 ---
         if not user_codes:
-            return {}
+            return {}, {}
+        if chunk_size <= 0:
+            chunk_size = 100
 
-        results: Dict[str, List[Dict[str, Any]]] = {}
+        # 清洗 code：去掉空白字符串
+        user_codes = [uc.strip() for uc in user_codes if uc and uc.strip()]
+        if not user_codes:
+            return {}, {}
 
+        filter_status = bool(status_whitelist)
+
+        # --- 结果容器 ---
+        statistics: Dict[str, Dict[str, Any]] = {}
+        completed_deals: Dict[str, List[Dict[str, Any]]] = {}
+
+        # --- 查询执行 ---
         with self.connection_ctx() as conn:
-            cursor = conn.cursor(dictionary=True)
-            try:
+            with conn.cursor(dictionary=True) as cursor:
                 for i in range(0, len(user_codes), chunk_size):
                     chunk = user_codes[i:i + chunk_size]
-                    placeholders = ", ".join(["%s"] * len(chunk))
-                    status_placeholders = ", ".join(["%s"] * len(status_whitelist))
+                    ph_users = ", ".join(["%s"] * len(chunk))
 
-                    sql = f"""
-                        SELECT
-                            bid_user_code,
-                            matcher_name,
-                            name,
-                            foot_ring,
-                            quote
-                        FROM pigeon_info
-                        WHERE bid_user_code IN ({placeholders})
-                          AND status_name IN ({status_placeholders})
-                        ORDER BY bid_user_code, matcher_name
-                    """
+                    # SQL：按 code + 状态过滤，不限制 auction_id
+                    if filter_status:
+                        ph_status = ", ".join(["%s"] * len(status_whitelist))
+                        sql = f"""
+                            SELECT
+                                bid_user_code,
+                                matcher_name,
+                                name,
+                                foot_ring,
+                                quote,
+                                auction_id,
+                                status_name
+                            FROM pigeon_info
+                            WHERE bid_user_code IN ({ph_users})
+                              AND status_name IN ({ph_status})
+                            ORDER BY bid_user_code, quote DESC
+                        """
+                        params = [*chunk, *status_whitelist]
+                    else:
+                        sql = f"""
+                            SELECT
+                                bid_user_code,
+                                matcher_name,
+                                name,
+                                foot_ring,
+                                quote,
+                                auction_id,
+                                status_name
+                            FROM pigeon_info
+                            WHERE bid_user_code IN ({ph_users})
+                            ORDER BY bid_user_code, quote DESC
+                        """
+                        params = [*chunk]
 
-                    cursor.execute(sql, (*chunk, *status_whitelist))
+                    cursor.execute(sql, params)
+
+                    # --- 遍历结果 ---
                     for row in cursor.fetchall():
                         uc = row["bid_user_code"]
-                        results.setdefault(uc, []).append(row)
-            finally:
-                cursor.close()
-        return results
+                        q = float(row["quote"]) if row["quote"] is not None else 0.0
+
+                        # 收集所有“已完成类”成交记录（跨全部拍卖场）
+                        completed_deals.setdefault(uc, []).append(
+                            {
+                                "matcher_name": row["matcher_name"],
+                                "name": row["name"],
+                                "foot_ring": row["foot_ring"],
+                                "quote": q,
+                                "auction_id": row["auction_id"],
+                                "status_name": row["status_name"],
+                                }
+                            )
+
+                        # 初始化该用户的统计数据（当前拍卖场 + 全部拍卖场）
+                        user_data = statistics.setdefault(
+                            uc,
+                            {
+                                # 当前拍卖场
+                                "deal_count": 0,
+                                "total_price": 0.0,
+                                "highest_price": 0.0,
+                                "second_highest_price": 0.0,
+
+                                # 所有拍卖场
+                                "deal_count_all": 0,
+                                "total_price_all": 0.0,
+                                "highest_price_all": 0.0,
+                                "second_highest_price_all": 0.0,
+                                },
+                            )
+
+                        # --- 先更新【全部拍卖场】统计 ---
+                        user_data["deal_count_all"] += 1
+                        user_data["total_price_all"] += q
+                        if q > user_data["highest_price_all"]:
+                            user_data["second_highest_price_all"] = user_data["highest_price_all"]
+                            user_data["highest_price_all"] = q
+                        elif q > user_data["second_highest_price_all"]:
+                            user_data["second_highest_price_all"] = q
+
+                        # --- 再更新【当前拍卖场】统计 ---
+                        if row["auction_id"] == auction_id:
+                            user_data["deal_count"] += 1
+                            user_data["total_price"] += q
+                            if q > user_data["highest_price"]:
+                                user_data["second_highest_price"] = user_data["highest_price"]
+                                user_data["highest_price"] = q
+                            elif q > user_data["second_highest_price"]:
+                                user_data["second_highest_price"] = q
+
+        return statistics, completed_deals
+
+
+if __name__ == "__main__":
+    pgdao = PigeonDao()
+    deals,s = pgdao.query_bid_statistics_and_deals(
+        user_codes=["GUGU008CQT367"], status_whitelist=("已完成", "已结拍"), chunk_size=100, auction_id=343
+        )
+    pprint(deals.items())
+    pprint(s.items())

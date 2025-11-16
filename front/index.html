@@ -90,6 +90,28 @@
       display: inline;
     }
 
+    /* 顶部成绩/环号/鸽主后的小方块标签 */
+    .meta-chip {
+      display: inline-block;
+      margin-left: 6px;
+      margin-top: 2px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.9);
+      font-size: 12px;
+      color: #555;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .meta-chip-label {
+      margin-right: 4px;
+      opacity: .8;
+    }
+    .meta-chip-value {
+      font-weight: 700;
+      color: #000;
+    }
+
     /* 每个出价人的主卡片 */
     .card {
       background: var(--card);
@@ -247,7 +269,7 @@
       margin-bottom: 10px;
 
       display: block;          /* ❗竖排，每个占一行 */
-      width: 520px;            /* ❗固定卡片宽度（你可以改成 480/600 等） */
+      width: 520px;            /* ❗固定卡片宽度 */
       max-width: 100%;         /* 防止屏幕窄的时候超出 */
       white-space: nowrap;     /* 里边不换行，保持一条 */
     }
@@ -259,8 +281,6 @@
       align-items: flex-start;    /* 从左边对齐 */
       gap: 6px;
     }
-
-
 
     .history-card {
       margin-top: 4px;
@@ -311,18 +331,15 @@
       border-radius: 6px;
       cursor: pointer;
 
-      display: inline-block;   /* 与小卡片一致 */
-      width: fit-content;       /* 关键：跟卡片一样宽度由内容决定 */
-      white-space: nowrap;      /* 不换行 */
+      display: inline-block;
+      width: fit-content;
+      white-space: nowrap;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-
-      /* 对齐方式：左对齐，与卡片自然排版一致 */
     }
 
     .toggle-more:hover {
       background: rgba(255,255,255,1);
     }
-
 
     /* 拍主信息里的“出价时间”相对时间小字 */
     .bid-time .sub{
@@ -592,22 +609,170 @@
     if(document.hidden) stopRelativeTimer(); else { updateAllRelativeTimes(); startRelativeTimer(); }
   });
 
+  // 顶部 meta 小方块（chip）
+  function makeChip(label, value, options = {}) {
+    if (value === null || value === undefined || value === '') return '';
+    const { money = false, suffix = '' } = options;
+    let v = value;
+
+    if (money) {
+      v = `¥${fmtMoney(value)}`;
+    } else {
+      v = escapeHtml(String(value));
+    }
+
+    return `
+      <span class="meta-chip">
+        <span class="meta-chip-label">${escapeHtml(label)}:</span>
+        <span class="meta-chip-value">${v}${suffix}</span>
+      </span>
+    `;
+  }
+
   // 顶部当前鸽子信息渲染
   function renderCurrentMeta(current) {
-    mName.textContent = current?.name ?? "-";
-    mRing.textContent = safe(current?.footring ?? current?.foot_ring ?? current?.ring);
-    const matcherName = current?.matchername ?? current?.matcher_name ?? current?.matcher;
-    mMatcher.textContent = safe(matcherName);
+    const c = current || {};
 
-    const contentVal = current?.content ?? current?.xlsx_content ?? current?.desc ?? current?.description;
+    // content 里存的是我们从 Excel 解析出来的一整行：
+    // {
+    //   content_text, rating, sex, max_speed, distance,
+    //   qualifying_race, race_1, race_2, double_race_king, triple_race_king, quad_race_king, team,
+    //   pigeon_income, owner_total_invest, owner_total_income, owner_net_revenue, kair_total_revenue,
+    //   paid_count, award_count, ...
+    // }
+    const extra =
+      (c.content && typeof c.content === 'object' ? c.content : null) ||
+      (c.xlsx_content && typeof c.xlsx_content === 'object' ? c.xlsx_content : null);
 
-    if (contentVal == null) {
+    // ========= 成绩行 =========
+    const baseName = c.name ?? "-";
+    let nameHtml = escapeHtml(baseName);
+
+    if (extra) {
+      const chips = [];
+
+      // 评级，性别，最高分速，飞行距离
+      if (extra.rating) {
+        chips.push(makeChip('评级', extra.rating));
+      }
+      if (extra.sex) {
+        chips.push(makeChip('性别', extra.sex));
+      }
+      if (extra.max_speed) {
+        chips.push(makeChip('最高分速', extra.max_speed));
+      }
+      if (extra.distance) {
+        chips.push(makeChip('飞行距离', extra.distance));
+      }
+
+      if (chips.length) {
+        nameHtml += ' ' + chips.join('');
+      }
+    }
+
+    mName.innerHTML = nameHtml;
+
+    // ========= 环号行 =========
+    const ringVal = c.footring ?? c.foot_ring ?? c.ring ?? "-";
+    let ringHtml = escapeHtml(String(ringVal || "-"));
+
+    if (extra) {
+      const chips = [];
+
+      // 资格赛 第一关 第二关 双关鸽王 三关鸽王 四关鸽王 团体
+      if (extra.qualifying_race) {
+        chips.push(makeChip('资格赛', extra.qualifying_race));
+      }
+      if (extra.race_1) {
+        chips.push(makeChip('第一关', extra.race_1));
+      }
+      if (extra.race_2) {
+        chips.push(makeChip('第二关', extra.race_2));
+      }
+      if (extra.double_race_king) {
+        chips.push(makeChip('双关鸽王', extra.double_race_king));
+      }
+      if (extra.triple_race_king) {
+        chips.push(makeChip('三关鸽王', extra.triple_race_king));
+      }
+      if (extra.quad_race_king) {
+        chips.push(makeChip('四关鸽王', extra.quad_race_king));
+      }
+      if (extra.team) {
+        chips.push(makeChip('团体', extra.team));
+      }
+
+      if (chips.length) {
+        ringHtml += ' ' + chips.join('');
+      }
+    }
+
+    mRing.innerHTML = ringHtml;
+
+    // ========= 鸽主行 =========
+    const matcherName = c.matchername ?? c.matcher_name ?? c.matcher ?? "-";
+    let matcherHtml = escapeHtml(String(matcherName || "-"));
+
+    if (extra) {
+      const chips = [];
+
+      // 本鸽收入	鸽主总投入	鸽主总收入	鸽主总营收	开尔总营收
+      if (extra.pigeon_income != null) {
+        chips.push(makeChip('本鸽收入', extra.pigeon_income, { money: true }));
+      }
+      if (extra.owner_total_invest != null) {
+        chips.push(makeChip('鸽主总投入', extra.owner_total_invest, { money: true }));
+      }
+      if (extra.owner_total_income != null) {
+        chips.push(makeChip('鸽主总收入', extra.owner_total_income, { money: true }));
+      }
+      if (extra.owner_net_revenue != null) {
+        chips.push(makeChip('鸽主总营收', extra.owner_net_revenue, { money: true }));
+      }
+      if (extra.kair_total_revenue != null) {
+        chips.push(makeChip('开尔总营收', extra.kair_total_revenue, { money: true }));
+      }
+
+      // 缴费羽数	进奖羽数
+      if (extra.paid_count != null) {
+        chips.push(makeChip('缴费羽数', extra.paid_count, { suffix: ' 羽' }));
+      }
+      if (extra.award_count != null) {
+        chips.push(makeChip('进奖羽数', extra.award_count, { suffix: ' 羽' }));
+      }
+
+      if (chips.length) {
+        matcherHtml += ' ' + chips.join('');
+      }
+    }
+
+    mMatcher.innerHTML = matcherHtml;
+
+    // ========= 下方大块内容（原来的 m_content） =========
+    // 优先使用 content_text，其次当前 content 为字符串，再次 desc / description
+    let contentText = null;
+
+    if (extra && extra.content_text != null) {
+      contentText = String(extra.content_text);
+    } else if (typeof c.content === 'string') {
+      contentText = c.content;
+    } else if (typeof c.desc === 'string') {
+      contentText = c.desc;
+    } else if (typeof c.description === 'string') {
+      contentText = c.description;
+    }
+
+    if (contentText == null || contentText === '') {
       mContent.textContent = "-";
-    } else if (typeof contentVal === "object") {
-      mContent.textContent = JSON.stringify(contentVal);
     } else {
-      const parts = String(contentVal).split(/[；;]+/).map(s => s.trim()).filter(Boolean);
-      mContent.innerHTML = parts.length ? parts.map(escapeHtml).join("<br>") : escapeHtml(String(contentVal));
+      const parts = String(contentText)
+        .split(/[；;]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      mContent.innerHTML = parts.length
+        ? parts.map(escapeHtml).join("<br>")
+        : escapeHtml(String(contentText));
     }
   }
 
@@ -725,11 +890,6 @@
         }
       });
       container.appendChild(ctl);
-
-      // const tip = document.createElement('div');
-      // tip.className = 'fold-tip';
-      // tip.textContent = `已折叠 ${hiddenCount} 组历史记录，可点击按钮展开`;
-      // container.appendChild(tip);
     }
 
     return container;

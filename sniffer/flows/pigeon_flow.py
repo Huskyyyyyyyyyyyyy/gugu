@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 
 from commons.base_logger import BaseLogger
-from pigeon_socket.adapters.bidrecord_payload import records_to_payload
+from pigeon_socket.adapters.bidrecord_payload import records_to_payload, init_pigeon_xlsx_context
 from pigeon_socket.bus import bus
 from sniffer.models import Event
 from crawlers.pids_crawler import PidsPigeonsCrawler
@@ -48,6 +48,8 @@ async def handle_pigeon_auction(ev: Event, m: re.Match):
 
 @on_startup
 async def trigger_on_startup():
+    # 启动时先把 Excel 全部读入内存（跑在线程池，不卡事件循环）
+    await init_pigeon_xlsx_context()
     """启动时执行一次抓取，然后发布给 SSE。"""
     current_info,records = await _handlers.process_current_pid(reason="startup", debounce=False)
     await bus.publish(records_to_payload(records,current_info))
